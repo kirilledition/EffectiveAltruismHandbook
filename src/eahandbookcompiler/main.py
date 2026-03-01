@@ -1,5 +1,8 @@
 """Command-line interface for the EA Handbook builder."""
 
+from __future__ import annotations
+
+import logging
 from pathlib import Path
 
 import click
@@ -61,7 +64,10 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
+
+    handbook = scrape_all(session=None, delay=delay, cache_dir=Path(cache_dir))
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
@@ -115,7 +121,10 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
+
+    handbook = scrape_all(session=None, delay=delay, cache_dir=Path(cache_dir))
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")

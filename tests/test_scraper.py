@@ -14,6 +14,9 @@ from eahandbookcompiler.converter import (
 from eahandbookcompiler.scraper import (
     Handbook,
     Post,
+    _cache_key,
+    _load_cached_post,
+    _save_cached_post,
     extract_author,
     extract_date,
     html_to_markdown,
@@ -566,3 +569,66 @@ class TestFetchRedirects:
             match="Exceeded maximum redirects",
         ):
             fetch(session, "https://forum.effectivealtruism.org/post")
+
+
+# ---------------------------------------------------------------------------
+# caching helpers tests
+# ---------------------------------------------------------------------------
+
+
+class TestCacheKey:
+    def test_deterministic(self):
+        assert _cache_key("https://example.com/a") == _cache_key("https://example.com/a")
+
+    def test_different_urls_differ(self):
+        assert _cache_key("https://example.com/a") != _cache_key("https://example.com/b")
+
+    def test_length(self):
+        assert len(_cache_key("https://example.com/post")) == 16
+
+
+class TestCacheHelpers:
+    def test_save_and_load(self, tmp_path):
+        post = Post(
+            title="T",
+            url="https://example.com/posts/abc/x",
+            markdown="hello",
+            author="Alice",
+            posted_date="2024-01-01",
+        )
+        _save_cached_post(post, tmp_path)
+
+        loaded = Post(title="T", url="https://example.com/posts/abc/x")
+        assert _load_cached_post(loaded, tmp_path)
+        assert loaded.markdown == "hello"
+        assert loaded.author == "Alice"
+        assert loaded.posted_date == "2024-01-01"
+
+    def test_load_missing_returns_false(self, tmp_path):
+        post = Post(title="T", url="https://example.com/posts/abc/x")
+        assert not _load_cached_post(post, tmp_path)
+
+    def test_load_corrupt_json_returns_false(self, tmp_path):
+        post = Post(title="T", url="https://example.com/posts/abc/x")
+        cache_file = tmp_path / f"{_cache_key(post.url)}.json"
+        cache_file.write_text("{invalid json", encoding="utf-8")
+
+        assert not _load_cached_post(post, tmp_path)
+
+
+class TestExtractAuthorJsonLdTypeFallback:
+    """Verify TypeError in JSON-LD parsing is caught after the except fix."""
+
+    def test_json_ld_with_none_string_field(self):
+        html = '<html><head><script type="application/ld+json">null</script></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == ""
+
+    def test_json_ld_with_list_data(self):
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '[{"author": "Should not crash"}]'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == ""
