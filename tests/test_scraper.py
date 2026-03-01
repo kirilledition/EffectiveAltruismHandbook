@@ -383,9 +383,27 @@ class TestBuildMetadataPage:
     def test_authors_sorted_two_columns(self):
         handbook = Handbook(
             posts=[
-                Post(title="A", url="u", author="Zara", posted_date="2023-01-01", markdown="m"),
-                Post(title="B", url="u", author="Alice", posted_date="2023-06-01", markdown="m"),
-                Post(title="C", url="u", author="Bob", posted_date="2023-03-15", markdown="m"),
+                Post(
+                    title="A",
+                    url="u",
+                    author="Zara",
+                    posted_date="2023-01-01",
+                    markdown="m",
+                ),
+                Post(
+                    title="B",
+                    url="u",
+                    author="Alice",
+                    posted_date="2023-06-01",
+                    markdown="m",
+                ),
+                Post(
+                    title="C",
+                    url="u",
+                    author="Bob",
+                    posted_date="2023-03-15",
+                    markdown="m",
+                ),
             ],
         )
         page = build_metadata_page(handbook)

@@ -31,7 +31,14 @@ def test_build_success(mock_scrape_all, mock_build_all):
     runner = CliRunner()
     result = runner.invoke(
         build,
-        ["--output-dir", "custom-dist", "--commit-hash", "abc1234", "--repo-url", "https://github.com/test/repo"],
+        [
+            "--output-dir",
+            "custom-dist",
+            "--commit-hash",
+            "abc1234",
+            "--repo-url",
+            "https://github.com/test/repo",
+        ],
     )
 
     assert result.exit_code == 0
@@ -68,7 +75,14 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     runner = CliRunner()
     result = runner.invoke(
         scrape,
-        ["--output-dir", "custom-dist", "--commit-hash", "def5678", "--repo-url", "https://github.com/test/repo2"],
+        [
+            "--output-dir",
+            "custom-dist",
+            "--commit-hash",
+            "def5678",
+            "--repo-url",
+            "https://github.com/test/repo2",
+        ],
     )
 
     assert result.exit_code == 0

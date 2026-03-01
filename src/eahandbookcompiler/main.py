@@ -47,7 +47,14 @@ def cli() -> None:
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
-def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
+def build(
+    output_dir: str,
+    delay: float,
+    verbose: bool,
+    commit_hash: str,
+    repo_url: str,
+    cache_dir: str,
+) -> None:
     """Scrape the handbook and build markdown, epub, and pdf.
 
     Args:
@@ -61,12 +68,16 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(
+        session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir)
+    )
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
-    paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
+    paths = build_all(
+        handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url
+    )
 
     click.echo("Output files:")
     for format_name, path in paths.items():
@@ -101,7 +112,14 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
-def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
+def scrape(
+    output_dir: str,
+    delay: float,
+    verbose: bool,
+    commit_hash: str,
+    repo_url: str,
+    cache_dir: str,
+) -> None:
     """Scrape the handbook and write only the combined markdown file.
 
     Args:
@@ -115,7 +133,9 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(
+        session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir)
+    )
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
