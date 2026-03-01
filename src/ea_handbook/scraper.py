@@ -143,7 +143,25 @@ def scrape_post_content(post: Post, session: Optional[requests.Session] = None) 
     if body is None:
         # Fallback: grab the largest <div> that looks like content
         divs = soup.find_all("div")
-        body = max(divs, key=lambda d: len(d.get_text()), default=None)
+        if divs:
+            from bs4.element import Comment
+            div_text_lengths = {}
+            for text_node in soup.find_all(string=True):
+                if isinstance(text_node, Comment):
+                    continue
+                length = len(text_node)
+                if length == 0:
+                    continue
+                parent = text_node.parent
+                while parent is not None:
+                    if parent.name == "div":
+                        div_id = id(parent)
+                        div_text_lengths[div_id] = div_text_lengths.get(div_id, 0) + length
+                    parent = parent.parent
+            if div_text_lengths:
+                body = max(divs, key=lambda d: div_text_lengths.get(id(d), 0))
+            else:
+                body = None
 
     if body:
         post.markdown = _html_to_markdown(body)
