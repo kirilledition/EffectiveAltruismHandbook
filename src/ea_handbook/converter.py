@@ -9,6 +9,8 @@ from pathlib import Path
 
 from ea_handbook.scraper import Handbook
 
+HEADING_PATTERN = re.compile(r"^(?=#+ )", flags=re.MULTILINE)
+
 PANDOC_METADATA = """\
 ---
 title: "The Effective Altruism Handbook"
@@ -55,7 +57,7 @@ def handbook_to_markdown(handbook: Handbook, output_path: Path) -> Path:
 
 def _demote_headings(text: str, levels: int = 2) -> str:
     """Increase all ATX heading levels by *levels* (e.g. # → ###)."""
-    return re.sub(r"^(?=#+ )", "#" * levels, text, flags=re.MULTILINE)
+    return HEADING_PATTERN.sub("#" * levels, text)
 
 
 def _require_pandoc() -> str:
