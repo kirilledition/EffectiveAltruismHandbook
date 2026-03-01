@@ -55,13 +55,7 @@ def handbook_to_markdown(handbook: Handbook, output_path: Path) -> Path:
 
 def _demote_headings(text: str, levels: int = 2) -> str:
     """Increase all ATX heading levels by *levels* (e.g. # → ###)."""
-    result: list[str] = []
-    for line in text.splitlines():
-        if re.match(r"^#+ ", line):
-            result.append("#" * levels + line)
-        else:
-            result.append(line)
-    return "\n".join(result)
+    return re.sub(r"^(?=#+ )", "#" * levels, text, flags=re.MULTILINE)
 
 
 def _require_pandoc() -> str:
