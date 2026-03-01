@@ -1,5 +1,10 @@
 # EffectiveAltruismHandbook
 
+[![Test Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml)
+[![Lint Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml)
+![Coverage](coverage-badge.svg)
+
+
 A [uv](https://docs.astral.sh/uv/)-based Python tool that scrapes posts from the
 [EA Handbook](https://forum.effectivealtruism.org/handbook) and compiles them into
 a single **Markdown**, **EPUB**, and **PDF** ebook.
