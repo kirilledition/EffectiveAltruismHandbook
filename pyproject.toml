@@ -47,17 +47,14 @@ ignore = [
     "TRY003", # long exception messages are acceptable here
     "EM101",  # string literal in exception - acceptable for clarity
     "EM102",  # f-string in exception - acceptable for clarity
-    "RUF003",
-    "PLR0913",
-    "C901",
-    "TC003",
+    "RUF003", # ambiguous unicode in comments
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"src/eahandbookcompiler/main.py" = ["FBT001", "FBT002"] # Click boolean flags
+"src/eahandbookcompiler/main.py" = ["FBT001", "FBT002", "PLR0913"] # Click CLI commands naturally require many arguments (PLR0913) and boolean flags (FBT)
 "src/eahandbookcompiler/scraper.py" = ["FBT001", "FBT002"] # verbose bool param
 "tests/**" = [
     "S101",    # assert is standard in pytest

@@ -6,7 +6,10 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import click
@@ -480,6 +483,37 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
+
+
+def _read_cache(cache_path: Path, post: Post) -> bool:
+    if not cache_path.exists():
+        return False
+    try:
+        with cache_path.open(encoding="utf-8") as f:
+            data = json.load(f)
+            post.markdown = data.get("markdown", "")
+            post.author = data.get("author", "")
+            post.posted_date = data.get("posted_date", "")
+    except (json.JSONDecodeError, OSError):
+        return False
+    else:
+        return True
+
+def _write_cache(cache_path: Path, post: Post) -> None:
+    try:
+        with cache_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "markdown": post.markdown,
+                    "author": post.author,
+                    "posted_date": post.posted_date,
+                },
+                f,
+                indent=2,
+            )
+    except OSError:
+        pass
+
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
@@ -519,33 +553,13 @@ def scrape_all(
         if cache_dir is not None:
             url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
             cache_path = cache_dir / f"{url_hash}.json"
-            if cache_path.exists():
-                try:
-                    with cache_path.open(encoding="utf-8") as f:
-                        data = json.load(f)
-                        post.markdown = data.get("markdown", "")
-                        post.author = data.get("author", "")
-                        post.posted_date = data.get("posted_date", "")
-                    continue
-                except json.JSONDecodeError, OSError:
-                    pass
+            if _read_cache(cache_path, post):
+                continue
 
         scrape_post_content(post, session)
 
         if cache_dir is not None:
-            try:
-                with cache_path.open("w", encoding="utf-8") as f:
-                    json.dump(
-                        {
-                            "markdown": post.markdown,
-                            "author": post.author,
-                            "posted_date": post.posted_date,
-                        },
-                        f,
-                        indent=2,
-                    )
-            except OSError:
-                pass
+            _write_cache(cache_path, post)
 
         time.sleep(delay)
 
