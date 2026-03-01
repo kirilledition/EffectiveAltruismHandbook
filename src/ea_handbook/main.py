@@ -6,7 +6,12 @@ from pathlib import Path
 
 import click
 
-from ea_handbook.converter import build_all, convert_to_epub, convert_to_pdf, handbook_to_markdown
+from ea_handbook.converter import (
+    build_all,
+    convert_to_epub,
+    convert_to_pdf,
+    handbook_to_markdown,
+)
 from ea_handbook.scraper import scrape_all
 
 

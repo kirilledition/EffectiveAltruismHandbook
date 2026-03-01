@@ -63,9 +63,7 @@ def _is_ea_forum_post(url: str) -> bool:
 def _html_to_markdown(html_element: Tag) -> str:
     """Convert a BeautifulSoup element to clean markdown."""
     # Remove navigation, footer, and other non-content elements
-    for tag in html_element.find_all(
-        ["nav", "footer", "script", "style", "noscript"]
-    ):
+    for tag in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
         tag.decompose()
     # Remove comment sections so forum debates are not included
     for tag in html_element.find_all(
@@ -111,7 +109,9 @@ def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Po
                 if _is_ea_forum_post(url):
                     title = link.get_text(strip=True)
                     if title:
-                        posts.append(Post(title=title, url=url, section=current_section))
+                        posts.append(
+                            Post(title=title, url=url, section=current_section)
+                        )
 
     # Deduplicate while preserving order
     seen: set[str] = set()

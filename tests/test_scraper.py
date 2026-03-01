@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import textwrap
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,7 +18,6 @@ from ea_handbook.scraper import (
     scrape_handbook_index,
     scrape_post_content,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -79,13 +76,17 @@ class TestFetch:
     def test_fetch_http_error(self):
         import requests
         from ea_handbook.scraper import _fetch
+
         session = MagicMock()
         response = MagicMock()
-        response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Client Error")
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Client Error"
+        )
         session.get.return_value = response
 
         with pytest.raises(requests.exceptions.HTTPError):
             _fetch(session, "https://example.com/not-found")
+
 
 class TestIsEaForumPost:
     def test_post_url(self):
@@ -94,9 +95,7 @@ class TestIsEaForumPost:
         )
 
     def test_sequence_url(self):
-        assert _is_ea_forum_post(
-            "https://forum.effectivealtruism.org/s/abc123"
-        )
+        assert _is_ea_forum_post("https://forum.effectivealtruism.org/s/abc123")
 
     def test_relative_post_url(self):
         assert _is_ea_forum_post("/posts/abc123/title")
@@ -266,9 +265,7 @@ class TestHandbookToMarkdown:
         assert content.count("# Sec") == 1
 
     def test_creates_parent_dirs(self, tmp_path):
-        handbook = Handbook(
-            posts=[Post(title="T", url="u", section="S", markdown="m")]
-        )
+        handbook = Handbook(posts=[Post(title="T", url="u", section="S", markdown="m")])
         out = tmp_path / "nested" / "dir" / "output.md"
         handbook_to_markdown(handbook, out)
 
@@ -307,16 +304,17 @@ class TestHtmlToMarkdown:
         from bs4 import BeautifulSoup
 
         html = (
-            '<div>'
-            '<p>Main content.</p>'
+            "<div>"
+            "<p>Main content.</p>"
             '<div class="CommentsSection"><p>A user comment.</p></div>'
-            '</div>'
+            "</div>"
         )
         element = BeautifulSoup(html, "lxml").find("div")
         md = _html_to_markdown(element)
 
         assert "Main content" in md
         assert "user comment" not in md
+
 
 class TestConvertToEpub:
     @patch("ea_handbook.converter.subprocess.run")
@@ -337,6 +335,7 @@ class TestConvertToEpub:
             [
                 "/usr/bin/pandoc",
                 str(md_path),
+                "--sandbox",
                 "--from=markdown",
                 "--to=epub3",
                 f"--output={out_path}",

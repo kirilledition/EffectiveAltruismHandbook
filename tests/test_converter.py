@@ -1,6 +1,6 @@
-from unittest.mock import patch, MagicMock
-from pathlib import Path
+from unittest.mock import patch
 from ea_handbook.converter import convert_to_epub, convert_to_pdf
+
 
 @patch("ea_handbook.converter.subprocess.run")
 @patch("ea_handbook.converter.shutil.which")
@@ -14,6 +14,7 @@ def test_convert_to_epub_sandbox(mock_which, mock_run, tmp_path):
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
     assert "--sandbox" in args
+
 
 @patch("ea_handbook.converter.subprocess.run")
 @patch("ea_handbook.converter.shutil.which")
