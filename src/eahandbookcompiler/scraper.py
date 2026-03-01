@@ -151,6 +151,14 @@ def html_to_markdown(html_element: Tag) -> str:
         class_=lambda c: c and "comments" in c.lower(),
     ):
         element.decompose()
+    # Sanitize potentially dangerous href and src attributes to prevent XSS in EPUB/PDF
+    for element in html_element.find_all(["a", "img", "iframe"]):
+        for attr in ("href", "src"):
+            val = element.get(attr)
+            if val and isinstance(val, str):
+                val_lower = val.lower().strip()
+                if val_lower.startswith(("javascript:", "data:text/html")):
+                    del element[attr]
     return markdownify(str(html_element), heading_style="ATX").strip()
 
 
