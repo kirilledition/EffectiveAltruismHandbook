@@ -150,7 +150,7 @@ jobs:
     # Only create a release on the default branch (not for PRs or forks)
     if: github.ref == 'refs/heads/main' && github.repository == 'kirilledition/EffectiveAltruismHandbook'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
