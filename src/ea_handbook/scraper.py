@@ -47,7 +47,30 @@ def _make_session() -> requests.Session:
 
 
 def _fetch(session: requests.Session, url: str) -> BeautifulSoup:
-    response = session.get(url, timeout=30)
+    current_url = url
+    for _ in range(5):
+        response = session.get(current_url, timeout=30, allow_redirects=False)
+        if response.is_redirect:
+            location = response.headers.get("Location")
+            if not location:
+                break
+
+            redirect_url = urljoin(current_url, location)
+            parsed = urlparse(redirect_url)
+
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
+
+            netloc = parsed.netloc.split(":")[0]
+            if not (netloc == "effectivealtruism.org" or netloc.endswith(".effectivealtruism.org")):
+                raise ValueError(f"Unsafe redirect domain: {netloc}")
+
+            current_url = redirect_url
+        else:
+            break
+    else:
+        raise requests.TooManyRedirects(f"Exceeded maximum redirects for {url}")
+
     response.raise_for_status()
     return BeautifulSoup(response.text, "lxml")
 

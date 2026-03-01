@@ -67,6 +67,7 @@ def _make_response(html: str) -> MagicMock:
     response = MagicMock()
     response.text = html
     response.raise_for_status = MagicMock()
+    response.is_redirect = False
     return response
 
 
@@ -305,3 +306,76 @@ class TestHtmlToMarkdown:
 
         assert "Main content" in md
         assert "user comment" not in md
+
+class TestFetchRedirects:
+    def test_fetch_no_redirect(self):
+        session = MagicMock()
+        response = _make_response("<html><body>content</body></html>")
+        response.is_redirect = False
+        session.get.return_value = response
+
+        from ea_handbook.scraper import _fetch
+        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "content"
+        session.get.assert_called_once_with("https://forum.effectivealtruism.org/post", timeout=30, allow_redirects=False)
+
+    def test_fetch_safe_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "https://effectivealtruism.org/new-post"}
+
+        final_response = _make_response("<html><body>content</body></html>")
+        final_response.is_redirect = False
+
+        session.get.side_effect = [redirect_response, final_response]
+
+        from ea_handbook.scraper import _fetch
+        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "content"
+        assert session.get.call_count == 2
+        session.get.assert_called_with("https://effectivealtruism.org/new-post", timeout=30, allow_redirects=False)
+
+    def test_fetch_unsafe_domain_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "https://evil.com/post"}
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+        import pytest
+        with pytest.raises(ValueError, match="Unsafe redirect domain: evil.com"):
+            _fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_fetch_unsafe_scheme_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "file:///etc/passwd"}
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+        import pytest
+        with pytest.raises(ValueError, match="Unsafe redirect scheme: file"):
+            _fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_fetch_too_many_redirects(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "https://forum.effectivealtruism.org/redirect"}
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+        import pytest
+        import requests
+        with pytest.raises(requests.TooManyRedirects, match="Exceeded maximum redirects"):
+            _fetch(session, "https://forum.effectivealtruism.org/post")
