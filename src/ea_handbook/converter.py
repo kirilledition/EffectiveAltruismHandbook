@@ -3,7 +3,6 @@
 import re
 import shutil
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ea_handbook.scraper import Handbook
@@ -23,39 +22,11 @@ description: >
 """
 
 
-def _get_git_info() -> dict[str, str]:
-    """Return git commit hash and repo URL, or empty strings if unavailable."""
-    info: dict[str, str] = {"commit_hash": "", "repo_url": ""}
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        info["commit_hash"] = result.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pass
-    try:
-        result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        url = result.stdout.strip()
-        # Normalise SSH URLs to HTTPS
-        if url.startswith("git@github.com:"):
-            url = url.replace("git@github.com:", "https://github.com/", 1)
-        if url.endswith(".git"):
-            url = url[:-4]
-        info["repo_url"] = url
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pass
-    return info
-
-
-def _build_metadata_page(handbook: Handbook) -> str:
+def _build_metadata_page(
+    handbook: Handbook,
+    commit_hash: str = "",
+    repo_url: str = "",
+) -> str:
     """Build the metadata front page as a markdown string."""
     # Collect authors and dates
     authors: set[str] = set()
@@ -79,11 +50,9 @@ def _build_metadata_page(handbook: Handbook) -> str:
 
     author_table = "| | |\n|---|---|\n" + "\n".join(rows) if rows else ""
 
-    # Git and build info
-    git = _get_git_info()
-    build_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    commit_part = f" with git commit `{git['commit_hash']}`" if git["commit_hash"] else ""
-    repo_url = git["repo_url"] or "https://github.com/kirilledition/EffectiveAltruismHandbook"
+    # Build info
+    commit_part = f" with git commit `{commit_hash}`" if commit_hash else ""
+    repo_url = repo_url or "https://github.com/kirilledition/EffectiveAltruismHandbook"
 
     parts = [
         "# About This Book\n\n",
@@ -95,14 +64,19 @@ def _build_metadata_page(handbook: Handbook) -> str:
     parts.append(
         f"*This ebook was compiled by Kirill Denisov using "
         f"[{repo_url.removeprefix('https://')}]({repo_url})"
-        f"{commit_part} on {build_date}. "
+        f"{commit_part}. "
         f"Last text update was on {latest}.*\n\n"
     )
 
     return "".join(parts)
 
 
-def handbook_to_markdown(handbook: Handbook, output_path: Path) -> Path:
+def handbook_to_markdown(
+    handbook: Handbook,
+    output_path: Path,
+    commit_hash: str = "",
+    repo_url: str = "",
+) -> Path:
     """
     Write the handbook to a single markdown file.
 
@@ -114,7 +88,7 @@ def handbook_to_markdown(handbook: Handbook, output_path: Path) -> Path:
     lines: list[str] = [PANDOC_METADATA]
 
     # Insert metadata front page
-    lines.append(_build_metadata_page(handbook))
+    lines.append(_build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
 
     current_section: str | None = None
 
@@ -203,7 +177,12 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
     return output_path
 
 
-def build_all(handbook: Handbook, output_dir: Path) -> dict[str, Path]:
+def build_all(
+    handbook: Handbook,
+    output_dir: Path,
+    commit_hash: str = "",
+    repo_url: str = "",
+) -> dict[str, Path]:
     """
     Build markdown, epub, and pdf from a Handbook.
 
@@ -212,7 +191,10 @@ def build_all(handbook: Handbook, output_dir: Path) -> dict[str, Path]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    md_path = handbook_to_markdown(handbook, output_dir / "ea-handbook.md")
+    md_path = handbook_to_markdown(
+        handbook, output_dir / "ea-handbook.md",
+        commit_hash=commit_hash, repo_url=repo_url,
+    )
     epub_path = convert_to_epub(md_path, output_dir / "ea-handbook.epub")
     pdf_path = convert_to_pdf(md_path, output_dir / "ea-handbook.pdf")
 

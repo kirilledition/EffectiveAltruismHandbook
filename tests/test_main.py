@@ -29,7 +29,10 @@ def test_build_success(mock_scrape_all, mock_build_all):
     }
 
     runner = CliRunner()
-    result = runner.invoke(build, ["--output-dir", "custom-dist"])
+    result = runner.invoke(
+        build,
+        ["--output-dir", "custom-dist", "--commit-hash", "abc1234", "--repo-url", "https://github.com/test/repo"],
+    )
 
     assert result.exit_code == 0
     assert "Output files:" in result.output
@@ -39,6 +42,9 @@ def test_build_success(mock_scrape_all, mock_build_all):
 
     mock_scrape_all.assert_called_once()
     mock_build_all.assert_called_once()
+    _, kwargs = mock_build_all.call_args
+    assert kwargs["commit_hash"] == "abc1234"
+    assert kwargs["repo_url"] == "https://github.com/test/repo"
 
 
 @patch("ea_handbook.main.scrape_all")
@@ -60,12 +66,18 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     mock_handbook_to_markdown.return_value = Path("dist/ea-handbook.md")
 
     runner = CliRunner()
-    result = runner.invoke(scrape, ["--output-dir", "custom-dist"])
+    result = runner.invoke(
+        scrape,
+        ["--output-dir", "custom-dist", "--commit-hash", "def5678", "--repo-url", "https://github.com/test/repo2"],
+    )
 
     assert result.exit_code == 0
     assert "Markdown written to: dist/ea-handbook.md" in result.output
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
+    _, kwargs = mock_handbook_to_markdown.call_args
+    assert kwargs["commit_hash"] == "def5678"
+    assert kwargs["repo_url"] == "https://github.com/test/repo2"
 
 
 @patch("ea_handbook.main.scrape_all")

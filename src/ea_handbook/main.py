@@ -37,14 +37,16 @@ def cli() -> None:
     help="Seconds to wait between HTTP requests.",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Print progress.")
-def build(output_dir: str, delay: float, verbose: bool) -> None:
+@click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
+@click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
+def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
     """Scrape the handbook and build markdown, epub, and pdf."""
     handbook = scrape_all(delay=delay, verbose=verbose)
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
-    paths = build_all(handbook, Path(output_dir))
+    paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
 
     click.echo("Output files:")
     for fmt, path in paths.items():
@@ -69,14 +71,19 @@ def build(output_dir: str, delay: float, verbose: bool) -> None:
     help="Seconds to wait between HTTP requests.",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Print progress.")
-def scrape(output_dir: str, delay: float, verbose: bool) -> None:
+@click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
+@click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
+def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
     """Scrape the handbook and write only the combined markdown file."""
     handbook = scrape_all(delay=delay, verbose=verbose)
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
-    path = handbook_to_markdown(handbook, Path(output_dir) / "ea-handbook.md")
+    path = handbook_to_markdown(
+        handbook, Path(output_dir) / "ea-handbook.md",
+        commit_hash=commit_hash, repo_url=repo_url,
+    )
     click.echo(f"Markdown written to: {path}")
 
 
