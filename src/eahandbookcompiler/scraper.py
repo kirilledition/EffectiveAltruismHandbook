@@ -50,7 +50,7 @@ class Handbook:
     posts: list[Post] = field(default_factory=list)
 
 
-def _make_session() -> requests.Session:
+def make_session() -> requests.Session:
     """Create a requests session with an identifying User-Agent header.
 
     Returns:
@@ -68,7 +68,7 @@ def _make_session() -> requests.Session:
     return session
 
 
-def _fetch(session: requests.Session, url: str) -> BeautifulSoup:
+def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     """Fetch a URL and return parsed HTML, following safe redirects only.
 
     Only redirects within the ``effectivealtruism.org`` domain and over
@@ -102,10 +102,7 @@ def _fetch(session: requests.Session, url: str) -> BeautifulSoup:
                 raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
 
             netloc = parsed.netloc.split(":")[0]
-            if not (
-                netloc == "effectivealtruism.org"
-                or netloc.endswith(".effectivealtruism.org")
-            ):
+            if not (netloc == "effectivealtruism.org" or netloc.endswith(".effectivealtruism.org")):
                 raise ValueError(f"Unsafe redirect domain: {netloc}")
 
             current_url = redirect_url
@@ -118,7 +115,7 @@ def _fetch(session: requests.Session, url: str) -> BeautifulSoup:
     return BeautifulSoup(response.text, "lxml")
 
 
-def _is_ea_forum_post(url: str) -> bool:
+def is_ea_forum_post(url: str) -> bool:
     """Check whether a URL points to an EA Forum post or sequence.
 
     Args:
@@ -130,12 +127,10 @@ def _is_ea_forum_post(url: str) -> bool:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https", ""):
         return False
-    return parsed.netloc in ("forum.effectivealtruism.org", "") and (
-        "/posts/" in parsed.path or "/s/" in parsed.path
-    )
+    return parsed.netloc in ("forum.effectivealtruism.org", "") and ("/posts/" in parsed.path or "/s/" in parsed.path)
 
 
-def _html_to_markdown(html_element: Tag) -> str:
+def html_to_markdown(html_element: Tag) -> str:
     """Convert a BeautifulSoup element to clean markdown.
 
     Navigation, footer, script, style, and comment sections are stripped
@@ -148,17 +143,18 @@ def _html_to_markdown(html_element: Tag) -> str:
         Cleaned markdown string.
     """
     # Remove navigation, footer, and other non-content elements
-    for el in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
-        el.decompose()
+    for element in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
+        element.decompose()
     # Remove comment sections so forum debates are not included
-    for el in html_element.find_all(
-        "div", class_=lambda c: c and "comments" in c.lower(),
+    for element in html_element.find_all(
+        "div",
+        class_=lambda c: c and "comments" in c.lower(),
     ):
-        el.decompose()
+        element.decompose()
     return markdownify(str(html_element), heading_style="ATX").strip()
 
 
-def _extract_author(soup: BeautifulSoup) -> str:
+def extract_author(soup: BeautifulSoup) -> str:
     """Extract the author name from a post page, trying several strategies.
 
     Strategies tried in order: JSON-LD structured data, ``<meta>`` author
@@ -170,18 +166,18 @@ def _extract_author(soup: BeautifulSoup) -> str:
     Returns:
         Author name, or an empty string if none could be found.
     """
-    name = _extract_author_json_ld(soup)
+    name = extract_author_json_ld(soup)
     if name:
         return name
 
-    name = _extract_author_meta(soup)
+    name = extract_author_meta(soup)
     if name:
         return name
 
-    return _extract_author_byline(soup)
+    return extract_author_byline(soup)
 
 
-def _extract_author_json_ld(soup: BeautifulSoup) -> str:
+def extract_author_json_ld(soup: BeautifulSoup) -> str:
     """Try to extract author from JSON-LD structured data.
 
     Args:
@@ -193,7 +189,7 @@ def _extract_author_json_ld(soup: BeautifulSoup) -> str:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(script.string or "")
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             continue
         if not isinstance(data, dict):
             continue
@@ -207,7 +203,7 @@ def _extract_author_json_ld(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _extract_author_meta(soup: BeautifulSoup) -> str:
+def extract_author_meta(soup: BeautifulSoup) -> str:
     """Try to extract author from a ``<meta name="author">`` tag.
 
     Args:
@@ -222,7 +218,7 @@ def _extract_author_meta(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _extract_author_byline(soup: BeautifulSoup) -> str:
+def extract_author_byline(soup: BeautifulSoup) -> str:
     """Try to extract author from common byline class patterns.
 
     Searches for ``<a>``, ``<span>``, or ``<div>`` elements whose CSS
@@ -237,9 +233,9 @@ def _extract_author_byline(soup: BeautifulSoup) -> str:
     for class_pattern in ("author", "byline", "username", "UsersName"):
         pattern_lower = class_pattern.lower()
         tag = soup.find(
-            lambda t, p=pattern_lower: t.name in ("a", "span", "div")
-            and t.get("class")
-            and any(p in c.lower() for c in t["class"]),
+            lambda t, p=pattern_lower: (
+                t.name in ("a", "span", "div") and t.get("class") and any(p in c.lower() for c in t["class"])
+            ),
         )
         if tag:
             text = tag.get_text(strip=True)
@@ -248,7 +244,7 @@ def _extract_author_byline(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _extract_date(soup: BeautifulSoup) -> str:
+def extract_date(soup: BeautifulSoup) -> str:
     """Extract the publication date from a post page.
 
     Tries JSON-LD, ``<meta>`` date properties, and ``<time>`` elements
@@ -268,12 +264,13 @@ def _extract_date(soup: BeautifulSoup) -> str:
                     date_str = data.get(key, "")
                     if date_str:
                         return date_str[:10]  # YYYY-MM-DD
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             continue
 
     for attr_name in ("article:published_time", "datePublished", "date"):
         meta = soup.find("meta", attrs={"property": attr_name}) or soup.find(
-            "meta", attrs={"name": attr_name},
+            "meta",
+            attrs={"name": attr_name},
         )
         if meta and meta.get("content"):
             return str(meta["content"]).strip()[:10]
@@ -285,7 +282,7 @@ def _extract_date(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _find_largest_content_div(soup: BeautifulSoup) -> Tag | None:
+def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
     """Find the ``<div>`` with the most text content.
 
     Used as a last-resort heuristic when no known post-body selector
@@ -297,8 +294,8 @@ def _find_largest_content_div(soup: BeautifulSoup) -> Tag | None:
     Returns:
         The ``<div>`` element with the most accumulated text, or ``None``.
     """
-    divs = soup.find_all("div")
-    if not divs:
+    divisions = soup.find_all("div")
+    if not divisions:
         return None
     div_text_lengths: dict[int, int] = {}
     for text_node in soup.find_all(string=True):
@@ -315,10 +312,10 @@ def _find_largest_content_div(soup: BeautifulSoup) -> Tag | None:
             parent = parent.parent
     if not div_text_lengths:
         return None
-    return max(divs, key=lambda d: div_text_lengths.get(id(d), 0))
+    return max(divisions, key=lambda d: div_text_lengths.get(id(d), 0))
 
 
-def _extract_posts_from_content(content: Tag) -> list[Post]:
+def extract_posts_from_content(content: Tag) -> list[Post]:
     """Parse the handbook content area and extract posts with sections.
 
     Section names are determined by ``<h1>``-``<h3>`` headings; post
@@ -343,7 +340,7 @@ def _extract_posts_from_content(content: Tag) -> list[Post]:
                 if not href:
                     continue
                 url = urljoin(BASE_URL, href) if not href.startswith("http") else href
-                if _is_ea_forum_post(url):
+                if is_ea_forum_post(url):
                     title = link.get_text(strip=True)
                     if title:
                         posts.append(Post(title=title, url=url, section=current_section))
@@ -362,9 +359,9 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
         De-duplicated, ordered list of ``Post`` stubs (title, url, section only).
     """
     if session is None:
-        session = _make_session()
+        session = make_session()
 
-    soup = _fetch(session, HANDBOOK_URL)
+    soup = fetch(session, HANDBOOK_URL)
 
     # Look for the main content area
     content = soup.find("div", class_=lambda c: c and "content" in c.lower())
@@ -374,7 +371,7 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     if content is None:
         return []
 
-    posts = _extract_posts_from_content(content)
+    posts = extract_posts_from_content(content)
 
     # Deduplicate while preserving order
     seen: set[str] = set()
@@ -387,7 +384,7 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     return unique_posts
 
 
-def _find_post_body(soup: BeautifulSoup) -> Tag | None:
+def find_post_body(soup: BeautifulSoup) -> Tag | None:
     """Locate the post body element within the page.
 
     Tries several CSS class patterns used by the EA Forum, then
@@ -423,21 +420,21 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
         The same ``post`` instance with content fields populated.
     """
     if session is None:
-        session = _make_session()
+        session = make_session()
 
-    soup = _fetch(session, post.url)
-    body = _find_post_body(soup)
+    soup = fetch(session, post.url)
+    body = find_post_body(soup)
 
     if body is None:
-        body = _find_largest_content_div(soup)
+        body = find_largest_content_division(soup)
 
     if body:
-        post.markdown = _html_to_markdown(body)
+        post.markdown = html_to_markdown(body)
     else:
         post.markdown = f"*Content could not be extracted from {post.url}*"
 
-    post.author = _extract_author(soup)
-    post.posted_date = _extract_date(soup)
+    post.author = extract_author(soup)
+    post.posted_date = extract_date(soup)
 
     return post
 
@@ -458,7 +455,7 @@ def scrape_all(
         A ``Handbook`` containing every post with content populated.
     """
     if session is None:
-        session = _make_session()
+        session = make_session()
 
     if verbose:
         click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")

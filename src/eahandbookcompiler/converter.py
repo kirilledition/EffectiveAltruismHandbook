@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ea_handbook.scraper import Handbook
+    from eahandbookcompiler.scraper import Handbook
 
 HEADING_PATTERN = re.compile(r"^(?=#+ )", flags=re.MULTILINE)
 
@@ -26,7 +26,7 @@ description: >
 """
 
 
-def _build_metadata_page(
+def build_metadata_page(
     handbook: Handbook,
     commit_hash: str = "",
     repo_url: str = "",
@@ -113,7 +113,7 @@ def handbook_to_markdown(
     lines: list[str] = [PANDOC_METADATA]
 
     # Insert metadata front page
-    lines.append(_build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
+    lines.append(build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
 
     current_section: str | None = None
 
@@ -126,7 +126,7 @@ def handbook_to_markdown(
 
         if post.markdown:
             # Demote headings inside the post body so they nest under ## title
-            demoted = _demote_headings(post.markdown)
+            demoted = demote_headings(post.markdown)
             lines.append(demoted)
             lines.append("\n\n")
         else:
@@ -136,7 +136,7 @@ def handbook_to_markdown(
     return output_path
 
 
-def _demote_headings(text: str, levels: int = 2) -> str:
+def demote_headings(text: str, levels: int = 2) -> str:
     """Increase all ATX heading levels by *levels*, ignoring code blocks.
 
     For example, with ``levels=2`` a ``# Heading`` becomes ``### Heading``.
@@ -176,7 +176,7 @@ def _demote_headings(text: str, levels: int = 2) -> str:
     return "\n".join(result)
 
 
-def _require_pandoc() -> str:
+def require_pandoc() -> str:
     """Return the path to the ``pandoc`` executable.
 
     Raises:
@@ -206,7 +206,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
         RuntimeError: If pandoc is not installed.
         subprocess.CalledProcessError: If pandoc exits with an error.
     """
-    pandoc = _require_pandoc()
+    pandoc = require_pandoc()
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -244,7 +244,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         RuntimeError: If pandoc is not installed.
         subprocess.CalledProcessError: If pandoc exits with an error.
     """
-    pandoc = _require_pandoc()
+    pandoc = require_pandoc()
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -287,11 +287,13 @@ def build_all(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    md_path = handbook_to_markdown(
-        handbook, output_dir / "ea-handbook.md",
-        commit_hash=commit_hash, repo_url=repo_url,
+    output_markdown_path = handbook_to_markdown(
+        handbook,
+        output_dir / "eahandbookcompiler.md",
+        commit_hash=commit_hash,
+        repo_url=repo_url,
     )
-    epub_path = convert_to_epub(md_path, output_dir / "ea-handbook.epub")
-    pdf_path = convert_to_pdf(md_path, output_dir / "ea-handbook.pdf")
+    epub_path = convert_to_epub(output_markdown_path, output_dir / "eahandbookcompiler.epub")
+    pdf_path = convert_to_pdf(output_markdown_path, output_dir / "eahandbookcompiler.pdf")
 
-    return {"markdown": md_path, "epub": epub_path, "pdf": pdf_path}
+    return {"markdown": output_markdown_path, "epub": epub_path, "pdf": pdf_path}

@@ -53,19 +53,19 @@ uv sync
 ### Build everything (markdown + epub + pdf)
 
 ```bash
-uv run ea-handbook build --output-dir dist --verbose
+uv run eahandbookcompiler build --output-dir dist --verbose
 ```
 
 ### Scrape only (markdown output)
 
 ```bash
-uv run ea-handbook scrape --output-dir dist --verbose
+uv run eahandbookcompiler scrape --output-dir dist --verbose
 ```
 
 ### Convert an existing markdown file
 
 ```bash
-uv run ea-handbook convert dist/ea-handbook.md --output-dir dist
+uv run eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
 ```
 
 ### Options
@@ -90,7 +90,7 @@ uv sync --dev
 uv run pytest
 
 # Run the CLI from source
-uv run ea-handbook --help
+uv run eahandbookcompiler --help
 ```
 
 ---

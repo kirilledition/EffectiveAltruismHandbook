@@ -4,13 +4,13 @@ from pathlib import Path
 
 import click
 
-from ea_handbook.converter import (
+from eahandbookcompiler.converter import (
     build_all,
     convert_to_epub,
     convert_to_pdf,
     handbook_to_markdown,
 )
-from ea_handbook.scraper import scrape_all
+from eahandbookcompiler.scraper import scrape_all
 
 
 @click.group()
@@ -60,8 +60,8 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
     paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
 
     click.echo("Output files:")
-    for fmt, path in paths.items():
-        click.echo(f"  {fmt}: {path}")
+    for format_name, path in paths.items():
+        click.echo(f"  {format_name}: {path}")
 
 
 @cli.command()
@@ -103,8 +103,10 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
         raise click.ClickException("No posts were found. Aborting.")
 
     path = handbook_to_markdown(
-        handbook, Path(output_dir) / "ea-handbook.md",
-        commit_hash=commit_hash, repo_url=repo_url,
+        handbook,
+        Path(output_dir) / "eahandbookcompiler.md",
+        commit_hash=commit_hash,
+        repo_url=repo_url,
     )
     click.echo(f"Markdown written to: {path}")
 
@@ -126,11 +128,11 @@ def convert(markdown_file: str, output_dir: str) -> None:
         markdown_file: Path to the source markdown file.
         output_dir: Directory where converted files are written.
     """
-    md = Path(markdown_file)
-    out = Path(output_dir)
+    markdown_path = Path(markdown_file)
+    output_path = Path(output_dir)
 
-    epub_path = convert_to_epub(md, out / "ea-handbook.epub")
-    pdf_path = convert_to_pdf(md, out / "ea-handbook.pdf")
+    epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
+    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
 
     click.echo(f"epub: {epub_path}")
     click.echo(f"pdf:  {pdf_path}")

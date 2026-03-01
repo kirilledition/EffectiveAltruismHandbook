@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ea_handbook.main import build, cli, convert, scrape
-from ea_handbook.scraper import Handbook, Post
+from eahandbookcompiler.main import build, cli, convert, scrape
+from eahandbookcompiler.scraper import Handbook, Post
 
 
 def test_cli_version():
@@ -18,12 +18,12 @@ def test_cli_version():
     assert "cli, version" in result.output
 
 
-@patch("ea_handbook.main.build_all")
-@patch("ea_handbook.main.scrape_all")
+@patch("eahandbookcompiler.main.build_all")
+@patch("eahandbookcompiler.main.scrape_all")
 def test_build_success(mock_scrape_all, mock_build_all):
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
     mock_build_all.return_value = {
-        "markdown": Path("dist/md"),
+        "markdown": Path("dist/markdown"),
         "epub": Path("dist/epub"),
         "pdf": Path("dist/pdf"),
     }
@@ -36,7 +36,7 @@ def test_build_success(mock_scrape_all, mock_build_all):
 
     assert result.exit_code == 0
     assert "Output files:" in result.output
-    assert "markdown: dist/md" in result.output
+    assert "markdown: dist/markdown" in result.output
     assert "epub: dist/epub" in result.output
     assert "pdf: dist/pdf" in result.output
 
@@ -47,7 +47,7 @@ def test_build_success(mock_scrape_all, mock_build_all):
     assert kwargs["repo_url"] == "https://github.com/test/repo"
 
 
-@patch("ea_handbook.main.scrape_all")
+@patch("eahandbookcompiler.main.scrape_all")
 def test_build_no_posts(mock_scrape_all):
     mock_scrape_all.return_value = Handbook(posts=[])
 
@@ -59,11 +59,11 @@ def test_build_no_posts(mock_scrape_all):
     mock_scrape_all.assert_called_once()
 
 
-@patch("ea_handbook.main.handbook_to_markdown")
-@patch("ea_handbook.main.scrape_all")
+@patch("eahandbookcompiler.main.handbook_to_markdown")
+@patch("eahandbookcompiler.main.scrape_all")
 def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
-    mock_handbook_to_markdown.return_value = Path("dist/ea-handbook.md")
+    mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
 
     runner = CliRunner()
     result = runner.invoke(
@@ -72,7 +72,7 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     )
 
     assert result.exit_code == 0
-    assert "Markdown written to: dist/ea-handbook.md" in result.output
+    assert "Markdown written to: dist/eahandbookcompiler.md" in result.output
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
     _, kwargs = mock_handbook_to_markdown.call_args
@@ -80,7 +80,7 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     assert kwargs["repo_url"] == "https://github.com/test/repo2"
 
 
-@patch("ea_handbook.main.scrape_all")
+@patch("eahandbookcompiler.main.scrape_all")
 def test_scrape_no_posts(mock_scrape_all):
     mock_scrape_all.return_value = Handbook(posts=[])
 
@@ -92,11 +92,11 @@ def test_scrape_no_posts(mock_scrape_all):
     mock_scrape_all.assert_called_once()
 
 
-@patch("ea_handbook.main.convert_to_pdf")
-@patch("ea_handbook.main.convert_to_epub")
+@patch("eahandbookcompiler.main.convert_to_pdf")
+@patch("eahandbookcompiler.main.convert_to_epub")
 def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
-    mock_convert_to_epub.return_value = Path("dist/ea-handbook.epub")
-    mock_convert_to_pdf.return_value = Path("dist/ea-handbook.pdf")
+    mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
+    mock_convert_to_pdf.return_value = Path("dist/eahandbookcompiler.pdf")
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -105,8 +105,8 @@ def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
         assert result.exit_code == 0
-        assert "epub: dist/ea-handbook.epub" in result.output
-        assert "pdf:  dist/ea-handbook.pdf" in result.output
+        assert "epub: dist/eahandbookcompiler.epub" in result.output
+        assert "pdf:  dist/eahandbookcompiler.pdf" in result.output
 
         mock_convert_to_epub.assert_called_once()
         mock_convert_to_pdf.assert_called_once()

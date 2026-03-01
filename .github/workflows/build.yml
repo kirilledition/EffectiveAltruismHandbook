@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run tests
-        run: uv run pytest --cov=ea_handbook --cov-report=xml
+        run: uv run pytest --cov=eahandbookcompiler --cov-report=xml
 
       - name: Generate coverage badge
         run: uv run genbadge coverage -i coverage.xml
@@ -62,21 +62,21 @@ jobs:
 
       - name: Scrape handbook (markdown only)
         run: |
-          uv run ea-handbook scrape --output-dir dist --verbose \
+          uv run eahandbookcompiler scrape --output-dir dist --verbose \
             --commit-hash "${{ github.sha }}" \
             --repo-url "https://github.com/${{ github.repository }}"
 
       - name: Compute content hash
         id: hash
-        run: echo "sha256=$(sha256sum dist/ea-handbook.md | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+        run: echo "sha256=$(sha256sum dist/eahandbookcompiler.md | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Restore previous content hash
         id: cache
         uses: actions/cache/restore@v4
         with:
           path: .content-hash
-          key: ea-handbook-content-hash
-          restore-keys: ea-handbook-content-hash
+          key: eahandbookcompiler-content-hash
+          restore-keys: eahandbookcompiler-content-hash
 
       - name: Check for content changes
         id: diff
@@ -96,14 +96,14 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .content-hash
-          key: ea-handbook-content-hash-${{ steps.hash.outputs.sha256 }}
+          key: eahandbookcompiler-content-hash-${{ steps.hash.outputs.sha256 }}
 
       - name: Upload markdown artifact
         if: steps.diff.outputs.changed == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: ea-handbook-markdown
-          path: dist/ea-handbook.md
+          name: eahandbookcompiler-markdown
+          path: dist/eahandbookcompiler.md
           retention-days: 1
 
   build:
@@ -130,16 +130,16 @@ jobs:
       - name: Download markdown artifact
         uses: actions/download-artifact@v8
         with:
-          name: ea-handbook-markdown
+          name: eahandbookcompiler-markdown
           path: dist/
 
       - name: Convert to epub and pdf
-        run: uv run ea-handbook convert dist/ea-handbook.md --output-dir dist
+        run: uv run eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: ea-handbook-ebook
+          name: eahandbookcompiler-ebook
           path: dist/
           retention-days: 30
 
@@ -155,7 +155,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
-          name: ea-handbook-ebook
+          name: eahandbookcompiler-ebook
           path: dist/
 
       - name: Generate release tag
@@ -171,11 +171,11 @@ jobs:
             Automated build of the [EA Handbook](https://forum.effectivealtruism.org/handbook).
 
             **Files:**
-            - `ea-handbook.md` — combined Markdown source
-            - `ea-handbook.epub` — EPUB 3 ebook
-            - `ea-handbook.pdf` — PDF document
+            - `eahandbookcompiler.md` — combined Markdown source
+            - `eahandbookcompiler.epub` — EPUB 3 ebook
+            - `eahandbookcompiler.pdf` — PDF document
           files: |
-            dist/ea-handbook.md
-            dist/ea-handbook.epub
-            dist/ea-handbook.pdf
+            dist/eahandbookcompiler.md
+            dist/eahandbookcompiler.epub
+            dist/eahandbookcompiler.pdf
           token: ${{ secrets.GITHUB_TOKEN }}

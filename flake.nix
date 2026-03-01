@@ -1,5 +1,5 @@
 {
-  description = "Development environment for ea-handbook";
+  description = "Development environment for eahandbookcompiler";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

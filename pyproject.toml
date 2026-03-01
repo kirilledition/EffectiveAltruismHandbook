@@ -1,5 +1,5 @@
 [project]
-name = "ea-handbook"
+name = "eahandbookcompiler"
 version = "2026.3.1"
 description = "EA Handbook parser to ebook"
 readme = "README.md"
@@ -28,11 +28,10 @@ requires = ["uv_build>=0.10.7,<0.11.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-ea-handbook = "ea_handbook.main:cli"
+eahandbookcompiler = "eahandbookcompiler.main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
 
 [tool.ruff]
 target-version = "py314"
@@ -55,8 +54,8 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"src/ea_handbook/main.py" = ["FBT001", "FBT002"] # Click boolean flags
-"src/ea_handbook/scraper.py" = ["FBT001", "FBT002"] # verbose bool param
+"src/eahandbookcompiler/main.py" = ["FBT001", "FBT002"] # Click boolean flags
+"src/eahandbookcompiler/scraper.py" = ["FBT001", "FBT002"] # verbose bool param
 "tests/**" = [
     "S101",    # assert is standard in pytest
     "ANN",     # annotations not needed in tests

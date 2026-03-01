@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ea_handbook.converter import _demote_headings, _require_pandoc
+from eahandbookcompiler.converter import demote_headings, require_pandoc
 
 
 class TestDemoteHeadingsCodeBlocks:
@@ -29,7 +29,7 @@ def foo():
     pass
 ```
 #### Heading 2"""
-        assert _demote_headings(text, levels=2) == expected
+        assert demote_headings(text, levels=2) == expected
 
     def test_ignores_tilde_code_blocks(self):
         text = """\
@@ -48,7 +48,7 @@ Some text.
 echo "hello"
 ~~~
 #### Heading 2"""
-        assert _demote_headings(text, levels=2) == expected
+        assert demote_headings(text, levels=2) == expected
 
     def test_ignores_indented_code_blocks(self):
         text = """\
@@ -67,7 +67,7 @@ Some text.
     echo "hello"
 
 #### Heading 2"""
-        assert _demote_headings(text, levels=2) == expected
+        assert demote_headings(text, levels=2) == expected
 
 
 class TestRequirePandocErrorPath:
@@ -75,5 +75,5 @@ class TestRequirePandocErrorPath:
     def test_missing_raises_runtime_error(self, mock_which):
         mock_which.return_value = None
         with pytest.raises(RuntimeError, match="pandoc is not installed"):
-            _require_pandoc()
+            require_pandoc()
         mock_which.assert_called_once_with("pandoc")

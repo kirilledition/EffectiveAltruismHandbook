@@ -5,19 +5,19 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bs4 import BeautifulSoup
 
-from ea_handbook.converter import (
-    _build_metadata_page,
-    _demote_headings,
+from eahandbookcompiler.converter import (
+    build_metadata_page,
     convert_to_pdf,
+    demote_headings,
     handbook_to_markdown,
 )
-from ea_handbook.scraper import (
+from eahandbookcompiler.scraper import (
     Handbook,
     Post,
-    _extract_author,
-    _extract_date,
-    _html_to_markdown,
-    _is_ea_forum_post,
+    extract_author,
+    extract_date,
+    html_to_markdown,
+    is_ea_forum_post,
     scrape_handbook_index,
     scrape_post_content,
 )
@@ -84,7 +84,7 @@ class TestFetch:
     def test_fetch_http_error(self):
         import requests
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
         session = MagicMock()
         response = MagicMock()
@@ -95,31 +95,31 @@ class TestFetch:
         session.get.return_value = response
 
         with pytest.raises(requests.exceptions.HTTPError):
-            _fetch(session, "https://example.com/not-found")
+            fetch(session, "https://example.com/not-found")
 
 
 class TestIsEaForumPost:
     def test_post_url(self):
-        assert _is_ea_forum_post(
+        assert is_ea_forum_post(
             "https://forum.effectivealtruism.org/posts/abc123/title",
         )
 
     def test_sequence_url(self):
-        assert _is_ea_forum_post("https://forum.effectivealtruism.org/s/abc123")
+        assert is_ea_forum_post("https://forum.effectivealtruism.org/s/abc123")
 
     def test_relative_post_url(self):
-        assert _is_ea_forum_post("/posts/abc123/title")
+        assert is_ea_forum_post("/posts/abc123/title")
 
     def test_external_url(self):
-        assert not _is_ea_forum_post("https://example.com/posts/abc")
+        assert not is_ea_forum_post("https://example.com/posts/abc")
 
     def test_handbook_index_url(self):
-        assert not _is_ea_forum_post("https://forum.effectivealtruism.org/handbook")
+        assert not is_ea_forum_post("https://forum.effectivealtruism.org/handbook")
 
     def test_invalid_scheme(self):
-        assert not _is_ea_forum_post("javascript:alert(1)")
-        assert not _is_ea_forum_post("file:///etc/passwd")
-        assert not _is_ea_forum_post("data:text/html,<script>alert(1)</script>")
+        assert not is_ea_forum_post("javascript:alert(1)")
+        assert not is_ea_forum_post("file:///etc/passwd")
+        assert not is_ea_forum_post("data:text/html,<script>alert(1)</script>")
 
 
 class TestScrapeHandbookIndex:
@@ -229,17 +229,17 @@ class TestExtractAuthor:
             "</script></head><body></body></html>"
         )
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_author(soup) == "Peter Singer"
+        assert extract_author(soup) == "Peter Singer"
 
     def test_meta_author(self):
         html = '<html><head><meta name="author" content="Toby Ord"></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_author(soup) == "Toby Ord"
+        assert extract_author(soup) == "Toby Ord"
 
     def test_no_author_returns_empty(self):
         html = "<html><body><p>Hello</p></body></html>"
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_author(soup) == ""
+        assert extract_author(soup) == ""
 
 
 class TestExtractDate:
@@ -249,17 +249,17 @@ class TestExtractDate:
             ' content="2022-03-10T08:00:00Z"></head><body></body></html>'
         )
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_date(soup) == "2022-03-10"
+        assert extract_date(soup) == "2022-03-10"
 
     def test_time_element(self):
         html = '<html><body><time datetime="2021-01-05T10:00:00Z">Jan 5</time></body></html>'
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_date(soup) == "2021-01-05"
+        assert extract_date(soup) == "2021-01-05"
 
     def test_no_date_returns_empty(self):
         html = "<html><body><p>Hello</p></body></html>"
         soup = BeautifulSoup(html, "lxml")
-        assert _extract_date(soup) == ""
+        assert extract_date(soup) == ""
 
 
 # ---------------------------------------------------------------------------
@@ -269,33 +269,33 @@ class TestExtractDate:
 
 class TestDemoteHeadings:
     def test_demotes_h1(self):
-        result = _demote_headings("# Heading", levels=2)
+        result = demote_headings("# Heading", levels=2)
         assert result == "### Heading"
 
     def test_demotes_h2(self):
-        result = _demote_headings("## Subheading", levels=2)
+        result = demote_headings("## Subheading", levels=2)
         assert result == "#### Subheading"
 
     def test_non_heading_unchanged(self):
-        result = _demote_headings("Normal paragraph", levels=2)
+        result = demote_headings("Normal paragraph", levels=2)
         assert result == "Normal paragraph"
 
     def test_multiline(self):
         text = "# Title\nSome text.\n## Sub"
-        result = _demote_headings(text, levels=1)
+        result = demote_headings(text, levels=1)
         assert result == "## Title\nSome text.\n### Sub"
 
     def test_hash_without_space_unchanged(self):
-        result = _demote_headings("#comment", levels=2)
+        result = demote_headings("#comment", levels=2)
         assert result == "#comment"
 
     def test_shebang_unchanged(self):
-        result = _demote_headings("#!/bin/bash", levels=2)
+        result = demote_headings("#!/bin/bash", levels=2)
         assert result == "#!/bin/bash"
 
     def test_code_comment_without_space_unchanged(self):
         text = "```python\n#!no heading\nprint('hello')\n```"
-        result = _demote_headings(text, levels=2)
+        result = demote_headings(text, levels=2)
         assert "#!no heading" in result
 
 
@@ -311,11 +311,11 @@ class TestHandbookToMarkdown:
                 ),
             ],
         )
-        out = tmp_path / "output.md"
-        result = handbook_to_markdown(handbook, out)
+        output_path = tmp_path / "output.markdown"
+        result = handbook_to_markdown(handbook, output_path)
 
-        assert result == out
-        content = out.read_text()
+        assert result == output_path
+        content = output_path.read_text()
         assert "# Intro" in content
         assert "## Post One" in content
         assert "Hello world." in content
@@ -327,18 +327,18 @@ class TestHandbookToMarkdown:
                 Post(title="B", url="u2", section="Sec", markdown="text"),
             ],
         )
-        out = tmp_path / "output.md"
-        handbook_to_markdown(handbook, out)
-        content = out.read_text()
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
 
         assert content.count("# Sec") == 1
 
     def test_creates_parent_dirs(self, tmp_path):
         handbook = Handbook(posts=[Post(title="T", url="u", section="S", markdown="m")])
-        out = tmp_path / "nested" / "dir" / "output.md"
-        handbook_to_markdown(handbook, out)
+        output_path = tmp_path / "nested" / "dir" / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
 
-        assert out.exists()
+        assert output_path.exists()
 
     def test_missing_markdown_uses_url(self, tmp_path):
         handbook = Handbook(
@@ -351,9 +351,9 @@ class TestHandbookToMarkdown:
                 ),
             ],
         )
-        out = tmp_path / "output.md"
-        handbook_to_markdown(handbook, out)
-        content = out.read_text()
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
 
         assert "https://forum.effectivealtruism.org/posts/x/y" in content
 
@@ -370,9 +370,9 @@ class TestHandbookToMarkdown:
                 ),
             ],
         )
-        out = tmp_path / "output.md"
-        handbook_to_markdown(handbook, out)
-        content = out.read_text()
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
 
         assert "# About This Book" in content
         assert "Alice" in content
@@ -388,7 +388,7 @@ class TestBuildMetadataPage:
                 Post(title="C", url="u", author="Bob", posted_date="2023-03-15", markdown="m"),
             ],
         )
-        page = _build_metadata_page(handbook)
+        page = build_metadata_page(handbook)
 
         assert "# About This Book" in page
         assert "2023-01-01" in page
@@ -405,7 +405,7 @@ class TestBuildMetadataPage:
         handbook = Handbook(
             posts=[Post(title="A", url="u", markdown="m")],
         )
-        page = _build_metadata_page(handbook)
+        page = build_metadata_page(handbook)
 
         assert "# About This Book" in page
         assert "unknown" in page
@@ -417,68 +417,63 @@ class TestHtmlToMarkdown:
         html = '<div><p>Read <a href="https://example.com">this study</a>.</p></div>'
         element = BeautifulSoup(html, "lxml").find("div")
         assert element is not None
-        md = _html_to_markdown(element)
+        markdown = html_to_markdown(element)
 
-        assert "https://example.com" in md
-        assert "this study" in md
+        assert "https://example.com" in markdown
+        assert "this study" in markdown
 
     def test_removes_comment_sections(self):
-        html = (
-            "<div>"
-            "<p>Main content.</p>"
-            '<div class="CommentsSection"><p>A user comment.</p></div>'
-            "</div>"
-        )
+        html = '<div><p>Main content.</p><div class="CommentsSection"><p>A user comment.</p></div></div>'
         element = BeautifulSoup(html, "lxml").find("div")
         assert element is not None
-        md = _html_to_markdown(element)
+        markdown = html_to_markdown(element)
 
-        assert "Main content" in md
-        assert "user comment" not in md
+        assert "Main content" in markdown
+        assert "user comment" not in markdown
 
 
 class TestConvertToEpub:
-    @patch("ea_handbook.converter.subprocess.run")
-    @patch("ea_handbook.converter._require_pandoc")
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    @patch("eahandbookcompiler.converter.require_pandoc")
     def test_convert_to_epub(self, mock_require_pandoc, mock_subprocess_run, tmp_path):
-        from ea_handbook.converter import convert_to_epub
+        from eahandbookcompiler.converter import convert_to_epub
 
         mock_require_pandoc.return_value = "/usr/bin/pandoc"
 
-        md_path = tmp_path / "input.md"
-        out_path = tmp_path / "output.epub"
+        markdown_path = tmp_path / "input.markdown"
+        test_output_path = tmp_path / "output.epub"
 
-        result = convert_to_epub(md_path, out_path)
+        result = convert_to_epub(markdown_path, test_output_path)
 
-        assert result == out_path
+        assert result == test_output_path
         mock_require_pandoc.assert_called_once()
         mock_subprocess_run.assert_called_once_with(
             [
                 "/usr/bin/pandoc",
-                str(md_path),
+                str(markdown_path),
                 "--sandbox",
                 "--from=markdown",
                 "--to=epub3",
-                f"--output={out_path}",
+                f"--output={test_output_path}",
                 "--toc",
                 "--toc-depth=2",
                 "--epub-chapter-level=2",
             ],
             check=True,
         )
-        assert out_path.parent.exists()
+        assert test_output_path.parent.exists()
 
 
 class TestConvertToPdf:
-    @patch("ea_handbook.converter.subprocess.run")
-    @patch("ea_handbook.converter.shutil.which")
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    @patch("eahandbookcompiler.converter.shutil.which")
     def test_convert_to_pdf_sandbox(self, mock_which, mock_run, tmp_path):
         # Mocking which: first call is for pandoc, second is for weasyprint
         mock_which.side_effect = ["/usr/bin/pandoc", "/usr/bin/weasyprint"]
-        md_path = tmp_path / "test.md"
-        out_path = tmp_path / "test.pdf"
+        markdown_path = tmp_path / "test.markdown"
+        test_output_path = tmp_path / "test.pdf"
 
-        convert_to_pdf(md_path, out_path)
+        convert_to_pdf(markdown_path, test_output_path)
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
@@ -492,9 +487,9 @@ class TestFetchRedirects:
         response.is_redirect = False
         session.get.return_value = response
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
-        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
         assert soup.text == "content"
         session.get.assert_called_once_with(
             "https://forum.effectivealtruism.org/post",
@@ -516,9 +511,9 @@ class TestFetchRedirects:
 
         session.get.side_effect = [redirect_response, final_response]
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
-        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
         assert soup.text == "content"
         assert session.get.call_count == 2
 
@@ -531,10 +526,10 @@ class TestFetchRedirects:
 
         session.get.return_value = redirect_response
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
         with pytest.raises(ValueError, match=r"Unsafe redirect domain: evil\.com"):
-            _fetch(session, "https://forum.effectivealtruism.org/post")
+            fetch(session, "https://forum.effectivealtruism.org/post")
 
     def test_fetch_unsafe_scheme_redirect(self):
         session = MagicMock()
@@ -545,10 +540,10 @@ class TestFetchRedirects:
 
         session.get.return_value = redirect_response
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
         with pytest.raises(ValueError, match="Unsafe redirect scheme: file"):
-            _fetch(session, "https://forum.effectivealtruism.org/post")
+            fetch(session, "https://forum.effectivealtruism.org/post")
 
     def test_fetch_too_many_redirects(self):
         import requests as req
@@ -563,9 +558,10 @@ class TestFetchRedirects:
 
         session.get.return_value = redirect_response
 
-        from ea_handbook.scraper import _fetch
+        from eahandbookcompiler.scraper import fetch
 
         with pytest.raises(
-            req.TooManyRedirects, match="Exceeded maximum redirects",
+            req.TooManyRedirects,
+            match="Exceeded maximum redirects",
         ):
-            _fetch(session, "https://forum.effectivealtruism.org/post")
+            fetch(session, "https://forum.effectivealtruism.org/post")

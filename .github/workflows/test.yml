@@ -1,4 +1,4 @@
-name: Lint
+name: Test
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    name: Run linters
+  test:
+    name: Run tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,18 +26,16 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Run Ruff Format
-        run: uv run ruff format .
+      - name: Run Pytest with Coverage
+        run: uv run pytest --cov=ea_handbook --cov-report=xml --cov-report=term
 
-      - name: Run Ruff Check (Fix)
-        run: uv run ruff check --fix .
+      - name: Generate Coverage Badge
+        if: always()
+        run: uv run genbadge coverage -i coverage.xml
 
-      - name: Commit auto-fixes
+      - name: Commit Coverage Badge
         uses: stefanzweifel/git-auto-commit-action@v7
         if: always()
         with:
-          commit_message: "style: auto-fix linting issues"
-
-      - name: Run Ty Check
-        if: always()
-        run: uv run ty check .
+          commit_message: "chore: update coverage badge"
+          file_pattern: "coverage.xml coverage-badge.svg"
