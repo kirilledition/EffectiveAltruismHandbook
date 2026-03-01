@@ -113,7 +113,9 @@ def handbook_to_markdown(
     lines: list[str] = [PANDOC_METADATA]
 
     # Insert metadata front page
-    lines.append(build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
+    lines.append(
+        build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url)
+    )
 
     current_section: str | None = None
 
@@ -299,7 +301,11 @@ def build_all(
         commit_hash=commit_hash,
         repo_url=repo_url,
     )
-    epub_path = convert_to_epub(output_markdown_path, output_dir / "eahandbookcompiler.epub")
-    pdf_path = convert_to_pdf(output_markdown_path, output_dir / "eahandbookcompiler.pdf")
+    epub_path = convert_to_epub(
+        output_markdown_path, output_dir / "eahandbookcompiler.epub"
+    )
+    pdf_path = convert_to_pdf(
+        output_markdown_path, output_dir / "eahandbookcompiler.pdf"
+    )
 
     return {"markdown": output_markdown_path, "epub": epub_path, "pdf": pdf_path}

@@ -68,12 +68,16 @@ def build(
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(
+        session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir)
+    )
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
-    paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
+    paths = build_all(
+        handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url
+    )
 
     click.echo("Output files:")
     for format_name, path in paths.items():
@@ -129,7 +133,9 @@ def scrape(
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(
+        session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir)
+    )
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
