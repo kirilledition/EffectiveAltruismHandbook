@@ -72,7 +72,7 @@ jobs:
 
       - name: Restore previous content hash
         id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .content-hash
           key: eahandbookcompiler-content-hash
@@ -93,7 +93,7 @@ jobs:
 
       - name: Update content hash cache
         if: steps.diff.outputs.changed == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: .content-hash
           key: eahandbookcompiler-content-hash-${{ steps.hash.outputs.sha256 }}
