@@ -86,6 +86,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
         [
             pandoc,
             str(markdown_path),
+            "--sandbox",
             "--from=markdown",
             "--to=epub3",
             f"--output={output_path}",
@@ -111,6 +112,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         [
             pandoc,
             str(markdown_path),
+            "--sandbox",
             "--from=markdown",
             "--to=pdf",
             f"--pdf-engine={pdf_engine}",
