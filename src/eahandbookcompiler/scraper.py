@@ -102,10 +102,7 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
                 raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
 
             netloc = parsed.netloc.split(":")[0]
-            if not (
-                netloc == "effectivealtruism.org"
-                or netloc.endswith(".effectivealtruism.org")
-            ):
+            if not (netloc == "effectivealtruism.org" or netloc.endswith(".effectivealtruism.org")):
                 raise ValueError(f"Unsafe redirect domain: {netloc}")
 
             current_url = redirect_url
@@ -130,9 +127,7 @@ def is_ea_forum_post(url: str) -> bool:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https", ""):
         return False
-    return parsed.netloc in ("forum.effectivealtruism.org", "") and (
-        "/posts/" in parsed.path or "/s/" in parsed.path
-    )
+    return parsed.netloc in ("forum.effectivealtruism.org", "") and ("/posts/" in parsed.path or "/s/" in parsed.path)
 
 
 def html_to_markdown(html_element: Tag) -> str:
@@ -148,9 +143,7 @@ def html_to_markdown(html_element: Tag) -> str:
         Cleaned markdown string.
     """
     # Remove navigation, footer, and other non-content elements
-    for element in html_element.find_all(
-        ["nav", "footer", "script", "style", "noscript"]
-    ):
+    for element in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
         element.decompose()
     # Remove comment sections so forum debates are not included
     for element in html_element.find_all(
@@ -245,9 +238,7 @@ def extract_author_byline(soup: BeautifulSoup) -> str:
         pattern_lower = class_pattern.lower()
         tag = soup.find(
             lambda t, p=pattern_lower: (
-                t.name in ("a", "span", "div")
-                and t.get("class")
-                and any(p in c.lower() for c in t["class"])
+                t.name in ("a", "span", "div") and t.get("class") and any(p in c.lower() for c in t["class"])
             ),
         )
         if tag:
@@ -330,19 +321,13 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
 
 def _extract_from_react_structure(content: Tag) -> list[Post]:
     posts: list[Post] = []
-    items = content.find_all(
-        "div", class_=lambda c: c and "LargeSequencesItem-columns" in c
-    )
+    items = content.find_all("div", class_=lambda c: c and "LargeSequencesItem-columns" in c)
     for item in items:
-        title_tag = item.find(
-            "div", class_=lambda c: c and "LargeSequencesItem-titleAndAuthor" in c
-        )
+        title_tag = item.find("div", class_=lambda c: c and "LargeSequencesItem-titleAndAuthor" in c)
         current_section = "Introduction"
         if title_tag:
             a_tag = title_tag.find("a")
-            current_section = (
-                a_tag.get_text(strip=True) if a_tag else title_tag.get_text(strip=True)
-            )
+            current_section = a_tag.get_text(strip=True) if a_tag else title_tag.get_text(strip=True)
 
         right = item.find("div", class_=lambda c: c and "LargeSequencesItem-right" in c)
         if right:
@@ -354,9 +339,7 @@ def _extract_from_react_structure(content: Tag) -> list[Post]:
                 if is_ea_forum_post(url):
                     title = link.get_text(strip=True)
                     if title:
-                        posts.append(
-                            Post(title=title, url=url, section=current_section)
-                        )
+                        posts.append(Post(title=title, url=url, section=current_section))
     return posts
 
 
@@ -377,9 +360,7 @@ def _extract_from_heading_structure(content: Tag) -> list[Post]:
                 if is_ea_forum_post(url):
                     title = link.get_text(strip=True)
                     if title:
-                        posts.append(
-                            Post(title=title, url=url, section=current_section)
-                        )
+                        posts.append(Post(title=title, url=url, section=current_section))
     return posts
 
 
@@ -424,9 +405,7 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     # Look for the main content area, avoiding TableOfContents which has 'content' in the name
     content = soup.find(
         "div",
-        class_=lambda c: c
-        and "content" in c.lower()
-        and "tableofcontents" not in c.lower(),
+        class_=lambda c: c and "content" in c.lower() and "tableofcontents" not in c.lower(),
     )
     if content is None:
         content = soup.find("main") or soup.find("article") or soup.body
