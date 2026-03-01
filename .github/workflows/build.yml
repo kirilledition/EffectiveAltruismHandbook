@@ -30,6 +30,9 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
+      - name: Run ty check
+        run: uv run ty check --python .venv
+
   build:
     name: Build ebook
     runs-on: ubuntu-latest

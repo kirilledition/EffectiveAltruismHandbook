@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Literal, get_args
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -15,6 +15,8 @@ from markdownify import markdownify
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
+
+HeadingTag = Literal["h1", "h2", "h3"]
 
 
 @dataclass
@@ -98,15 +100,18 @@ def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Po
     if content is None:
         return posts
 
-    for element in content.find_all(["h1", "h2", "h3", "ul"]):
+    for element in content.find_all(list(get_args(HeadingTag)) + ["ul"]):
         tag = element.name
-        if tag in ("h1", "h2", "h3"):
+        if tag in get_args(HeadingTag):
             current_section = element.get_text(strip=True)
         elif tag == "ul":
             for link in element.find_all("a", recursive=True):
                 href = link.get("href", "")
+                if isinstance(href, list):
+                    href = href[0]
                 if not href:
                     continue
+                href = str(href)
                 url = urljoin(BASE_URL, href) if not href.startswith("http") else href
                 if _is_ea_forum_post(url):
                     title = link.get_text(strip=True)
