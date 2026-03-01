@@ -337,6 +337,7 @@ class TestConvertToEpub:
             [
                 "/usr/bin/pandoc",
                 str(md_path),
+                "--sandbox",
                 "--from=markdown",
                 "--to=epub3",
                 f"--output={out_path}",
