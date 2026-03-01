@@ -9,7 +9,6 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from bs4.element import Tag
 from markdownify import markdownify
 
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
@@ -60,7 +59,7 @@ def _is_ea_forum_post(url: str) -> bool:
     )
 
 
-def _html_to_markdown(html_element: Tag) -> str:
+def _html_to_markdown(html_element) -> str:
     """Convert a BeautifulSoup element to clean markdown."""
     # Remove navigation, footer, and other non-content elements
     for tag in html_element.find_all(
