@@ -1,26 +1,23 @@
 [project]
 name = "ea-handbook"
-version = "0.1.0"
+version = "2026.3.1"
 description = "EA Handbook parser to ebook"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
-    "requests>=2.32",
-    "beautifulsoup4>=4.12",
-    "markdownify>=0.14",
-    "click>=8.1",
-    "lxml>=5.3",
+    "beautifulsoup4>=4.14.3",
+    "click>=8.3.1",
+    "lxml>=6.0.2",
+    "markdownify>=1.2.2",
+    "requests>=2.32.5",
 ]
 
 [project.scripts]
 ea-handbook = "ea_handbook.main:cli"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ea_handbook"]
+requires = ["uv_build>=0.10.7,<0.11.0"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
