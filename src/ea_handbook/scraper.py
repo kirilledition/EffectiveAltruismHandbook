@@ -1,11 +1,8 @@
 """Scraper for the EA Handbook at forum.effectivealtruism.org/handbook."""
 
-from __future__ import annotations
-
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -143,7 +140,7 @@ def _extract_date(soup: BeautifulSoup) -> str:
     return ""
 
 
-def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Post]:
+def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]:
     """
     Fetch the handbook index and return a list of Posts with title/url/section.
     Content is not yet fetched at this stage.
@@ -194,7 +191,7 @@ def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Po
     return unique_posts
 
 
-def scrape_post_content(post: Post, session: Optional[requests.Session] = None) -> Post:
+def scrape_post_content(post: Post, session: requests.Session | None = None) -> Post:
     """Fetch the content of a single post and populate its markdown field."""
     if session is None:
         session = _make_session()
@@ -246,7 +243,7 @@ def scrape_post_content(post: Post, session: Optional[requests.Session] = None) 
 
 
 def scrape_all(
-    session: Optional[requests.Session] = None,
+    session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
     verbose: bool = False,
 ) -> Handbook:

@@ -1,7 +1,5 @@
 """Convert a Handbook to markdown, epub, and pdf via pandoc."""
 
-from __future__ import annotations
-
 import re
 import shutil
 import subprocess

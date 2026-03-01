@@ -1,14 +1,14 @@
 """Tests for the EA Handbook scraper and converter."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock, patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 from ea_handbook.converter import (
     _build_metadata_page,
     _demote_headings,
+    convert_to_pdf,
     handbook_to_markdown,
 )
 from ea_handbook.scraper import (
@@ -215,22 +215,16 @@ class TestScrapePostContent:
 
 class TestExtractAuthor:
     def test_json_ld_author(self):
-        from bs4 import BeautifulSoup
-
         html = '<html><head><script type="application/ld+json">{"author": {"name": "Peter Singer"}}</script></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
         assert _extract_author(soup) == "Peter Singer"
 
     def test_meta_author(self):
-        from bs4 import BeautifulSoup
-
         html = '<html><head><meta name="author" content="Toby Ord"></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
         assert _extract_author(soup) == "Toby Ord"
 
     def test_no_author_returns_empty(self):
-        from bs4 import BeautifulSoup
-
         html = "<html><body><p>Hello</p></body></html>"
         soup = BeautifulSoup(html, "lxml")
         assert _extract_author(soup) == ""
@@ -238,22 +232,16 @@ class TestExtractAuthor:
 
 class TestExtractDate:
     def test_meta_date(self):
-        from bs4 import BeautifulSoup
-
         html = '<html><head><meta property="article:published_time" content="2022-03-10T08:00:00Z"></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
         assert _extract_date(soup) == "2022-03-10"
 
     def test_time_element(self):
-        from bs4 import BeautifulSoup
-
         html = '<html><body><time datetime="2021-01-05T10:00:00Z">Jan 5</time></body></html>'
         soup = BeautifulSoup(html, "lxml")
         assert _extract_date(soup) == "2021-01-05"
 
     def test_no_date_returns_empty(self):
-        from bs4 import BeautifulSoup
-
         html = "<html><body><p>Hello</p></body></html>"
         soup = BeautifulSoup(html, "lxml")
         assert _extract_date(soup) == ""
@@ -410,7 +398,6 @@ class TestBuildMetadataPage:
 
 class TestHtmlToMarkdown:
     def test_preserves_links(self):
-        from bs4 import BeautifulSoup
 
         html = '<div><p>Read <a href="https://example.com">this study</a>.</p></div>'
         element = BeautifulSoup(html, "lxml").find("div")
@@ -420,8 +407,6 @@ class TestHtmlToMarkdown:
         assert "this study" in md
 
     def test_removes_comment_sections(self):
-        from bs4 import BeautifulSoup
-
         html = (
             "<div>"
             "<p>Main content.</p>"
@@ -465,3 +450,19 @@ class TestConvertToEpub:
             check=True,
         )
         assert out_path.parent.exists()
+
+
+class TestConvertToPdf:
+    @patch("ea_handbook.converter.subprocess.run")
+    @patch("ea_handbook.converter.shutil.which")
+    def test_convert_to_pdf_sandbox(self, mock_which, mock_run, tmp_path):
+        # Mocking which: first call is for pandoc, second is for weasyprint
+        mock_which.side_effect = ["/usr/bin/pandoc", "/usr/bin/weasyprint"]
+        md_path = tmp_path / "test.md"
+        out_path = tmp_path / "test.pdf"
+
+        convert_to_pdf(md_path, out_path)
+
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert "--sandbox" in args
