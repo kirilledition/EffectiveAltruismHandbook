@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import click
@@ -478,8 +480,6 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-import hashlib
-from pathlib import Path
 
 
 def scrape_all(
@@ -523,7 +523,7 @@ def scrape_all(
             cache_path = cache_dir / f"{url_hash}.json"
             if cache_path.exists():
                 try:
-                    with open(cache_path, encoding="utf-8") as f:
+                    with cache_path.open(encoding="utf-8") as f:
                         data = json.load(f)
                         post.markdown = data.get("markdown", "")
                         post.author = data.get("author", "")
@@ -536,7 +536,7 @@ def scrape_all(
 
         if cache_dir is not None:
             try:
-                with open(cache_path, "w", encoding="utf-8") as f:
+                with cache_path.open("w", encoding="utf-8") as f:
                     json.dump(
                         {
                             "markdown": post.markdown,

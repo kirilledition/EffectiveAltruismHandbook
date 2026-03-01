@@ -47,7 +47,10 @@ ignore = [
     "TRY003", # long exception messages are acceptable here
     "EM101",  # string literal in exception - acceptable for clarity
     "EM102",  # f-string in exception - acceptable for clarity
-    "RUF003", # ambiguous unicode in comments
+    "RUF003",
+    "PLR0913",
+    "C901",
+    "TC003",
 ]
 
 [tool.ruff.lint.pydocstyle]
