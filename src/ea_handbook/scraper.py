@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -24,6 +25,8 @@ class Post:
     title: str
     url: str
     section: str = ""
+    author: str = ""
+    posted_date: str = ""
     markdown: str = ""
 
 
@@ -71,6 +74,73 @@ def _html_to_markdown(html_element: Tag) -> str:
     ):
         tag.decompose()
     return markdownify(str(html_element), heading_style="ATX").strip()
+
+
+def _extract_author(soup: BeautifulSoup) -> str:
+    """Extract the author name from a post page, trying several strategies."""
+    # Strategy 1: JSON-LD structured data
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string or "")
+            if isinstance(data, dict):
+                author = data.get("author")
+                if isinstance(author, dict):
+                    name = author.get("name", "")
+                    if name:
+                        return name
+                elif isinstance(author, str) and author:
+                    return author
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # Strategy 2: <meta name="author"> tag
+    meta_author = soup.find("meta", attrs={"name": "author"})
+    if meta_author and meta_author.get("content"):
+        return meta_author["content"].strip()
+
+    # Strategy 3: common byline class patterns on EA Forum
+    for class_pattern in ("author", "byline", "username", "UsersName"):
+        tag = soup.find(
+            lambda t: t.name in ("a", "span", "div")
+            and t.get("class")
+            and any(class_pattern.lower() in c.lower() for c in t["class"])
+        )
+        if tag:
+            text = tag.get_text(strip=True)
+            if text:
+                return text
+
+    return ""
+
+
+def _extract_date(soup: BeautifulSoup) -> str:
+    """Extract the publication date from a post page as an ISO date string (YYYY-MM-DD)."""
+    # Strategy 1: JSON-LD structured data
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string or "")
+            if isinstance(data, dict):
+                for key in ("datePublished", "dateCreated"):
+                    date_str = data.get(key, "")
+                    if date_str:
+                        return date_str[:10]  # YYYY-MM-DD
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # Strategy 2: <meta> date tags
+    for attr_name in ("article:published_time", "datePublished", "date"):
+        meta = soup.find("meta", attrs={"property": attr_name}) or soup.find(
+            "meta", attrs={"name": attr_name}
+        )
+        if meta and meta.get("content"):
+            return meta["content"].strip()[:10]
+
+    # Strategy 3: <time> element with datetime attribute
+    time_tag = soup.find("time", attrs={"datetime": True})
+    if time_tag:
+        return time_tag["datetime"][:10]
+
+    return ""
 
 
 def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Post]:
@@ -167,6 +237,10 @@ def scrape_post_content(post: Post, session: Optional[requests.Session] = None) 
         post.markdown = _html_to_markdown(body)
     else:
         post.markdown = f"*Content could not be extracted from {post.url}*"
+
+    # Extract author and date
+    post.author = _extract_author(soup)
+    post.posted_date = _extract_date(soup)
 
     return post
 

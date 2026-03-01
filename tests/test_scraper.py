@@ -7,12 +7,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ea_handbook.converter import (
+    _build_metadata_page,
     _demote_headings,
     handbook_to_markdown,
 )
 from ea_handbook.scraper import (
     Handbook,
     Post,
+    _extract_author,
+    _extract_date,
     _html_to_markdown,
     _is_ea_forum_post,
     scrape_handbook_index,
@@ -45,6 +48,10 @@ SAMPLE_HANDBOOK_HTML = """\
 SAMPLE_POST_HTML = """\
 <!DOCTYPE html>
 <html>
+<head>
+  <meta name="author" content="William MacAskill">
+  <meta property="article:published_time" content="2023-06-15T12:00:00Z">
+</head>
 <body>
   <div class="postBody">
     <h1>What is Effective Altruism?</h1>
@@ -192,6 +199,65 @@ class TestScrapePostContent:
 
         assert result.markdown  # should still have something
 
+    def test_extracts_author_and_date(self):
+        session = MagicMock()
+        session.get.return_value = _make_response(SAMPLE_POST_HTML)
+
+        post = Post(
+            title="What is Effective Altruism?",
+            url="https://forum.effectivealtruism.org/posts/abc123/what-is-ea",
+        )
+        result = scrape_post_content(post, session)
+
+        assert result.author == "William MacAskill"
+        assert result.posted_date == "2023-06-15"
+
+
+class TestExtractAuthor:
+    def test_json_ld_author(self):
+        from bs4 import BeautifulSoup
+
+        html = '<html><head><script type="application/ld+json">{"author": {"name": "Peter Singer"}}</script></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_author(soup) == "Peter Singer"
+
+    def test_meta_author(self):
+        from bs4 import BeautifulSoup
+
+        html = '<html><head><meta name="author" content="Toby Ord"></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_author(soup) == "Toby Ord"
+
+    def test_no_author_returns_empty(self):
+        from bs4 import BeautifulSoup
+
+        html = "<html><body><p>Hello</p></body></html>"
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_author(soup) == ""
+
+
+class TestExtractDate:
+    def test_meta_date(self):
+        from bs4 import BeautifulSoup
+
+        html = '<html><head><meta property="article:published_time" content="2022-03-10T08:00:00Z"></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_date(soup) == "2022-03-10"
+
+    def test_time_element(self):
+        from bs4 import BeautifulSoup
+
+        html = '<html><body><time datetime="2021-01-05T10:00:00Z">Jan 5</time></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_date(soup) == "2021-01-05"
+
+    def test_no_date_returns_empty(self):
+        from bs4 import BeautifulSoup
+
+        html = "<html><body><p>Hello</p></body></html>"
+        soup = BeautifulSoup(html, "lxml")
+        assert _extract_date(soup) == ""
+
 
 # ---------------------------------------------------------------------------
 # converter tests
@@ -287,6 +353,59 @@ class TestHandbookToMarkdown:
         content = out.read_text()
 
         assert "https://forum.effectivealtruism.org/posts/x/y" in content
+
+    def test_includes_metadata_page(self, tmp_path):
+        handbook = Handbook(
+            posts=[
+                Post(
+                    title="Post",
+                    url="u",
+                    section="S",
+                    author="Alice",
+                    posted_date="2023-01-15",
+                    markdown="text",
+                ),
+            ]
+        )
+        out = tmp_path / "output.md"
+        handbook_to_markdown(handbook, out)
+        content = out.read_text()
+
+        assert "# About This Book" in content
+        assert "Alice" in content
+        assert "2023-01-15" in content
+
+
+class TestBuildMetadataPage:
+    def test_authors_sorted_two_columns(self):
+        handbook = Handbook(
+            posts=[
+                Post(title="A", url="u", author="Zara", posted_date="2023-01-01", markdown="m"),
+                Post(title="B", url="u", author="Alice", posted_date="2023-06-01", markdown="m"),
+                Post(title="C", url="u", author="Bob", posted_date="2023-03-15", markdown="m"),
+            ]
+        )
+        page = _build_metadata_page(handbook)
+
+        assert "# About This Book" in page
+        assert "2023-01-01" in page
+        assert "2023-06-01" in page
+        # Authors in alphabetical order
+        alice_pos = page.index("Alice")
+        bob_pos = page.index("Bob")
+        zara_pos = page.index("Zara")
+        assert alice_pos < bob_pos < zara_pos
+        # Table format
+        assert "|" in page
+
+    def test_no_authors_no_dates(self):
+        handbook = Handbook(
+            posts=[Post(title="A", url="u", markdown="m")]
+        )
+        page = _build_metadata_page(handbook)
+
+        assert "# About This Book" in page
+        assert "unknown" in page
 
 
 class TestHtmlToMarkdown:
