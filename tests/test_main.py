@@ -100,8 +100,7 @@ def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
 
     runner = CliRunner()
     with runner.isolated_filesystem():
-        with open("input.md", "w") as f:
-            f.write("# Hello")
+        Path("input.md").write_text("# Hello")
 
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 

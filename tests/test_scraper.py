@@ -223,7 +223,11 @@ class TestScrapePostContent:
 
 class TestExtractAuthor:
     def test_json_ld_author(self):
-        html = '<html><head><script type="application/ld+json">{"author": {"name": "Peter Singer"}}</script></head><body></body></html>'
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"author": {"name": "Peter Singer"}}'
+            "</script></head><body></body></html>"
+        )
         soup = BeautifulSoup(html, "lxml")
         assert _extract_author(soup) == "Peter Singer"
 
@@ -240,7 +244,10 @@ class TestExtractAuthor:
 
 class TestExtractDate:
     def test_meta_date(self):
-        html = '<html><head><meta property="article:published_time" content="2022-03-10T08:00:00Z"></head><body></body></html>'
+        html = (
+            '<html><head><meta property="article:published_time"'
+            ' content="2022-03-10T08:00:00Z"></head><body></body></html>'
+        )
         soup = BeautifulSoup(html, "lxml")
         assert _extract_date(soup) == "2022-03-10"
 
@@ -524,7 +531,7 @@ class TestFetchRedirects:
 
         from ea_handbook.scraper import _fetch
 
-        with pytest.raises(ValueError, match="Unsafe redirect domain: evil.com"):
+        with pytest.raises(ValueError, match=r"Unsafe redirect domain: evil\.com"):
             _fetch(session, "https://forum.effectivealtruism.org/post")
 
     def test_fetch_unsafe_scheme_redirect(self):

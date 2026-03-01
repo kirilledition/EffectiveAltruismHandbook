@@ -40,7 +40,18 @@ def cli() -> None:
 @click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
 @click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
 def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
-    """Scrape the handbook and build markdown, epub, and pdf."""
+    """Scrape the handbook and build markdown, epub, and pdf.
+
+    Args:
+        output_dir: Directory where output files are written.
+        delay: Seconds to wait between HTTP requests.
+        verbose: Emit progress messages during scraping.
+        commit_hash: Git commit hash to embed in the metadata page.
+        repo_url: Repository URL to embed in the metadata page.
+
+    Raises:
+        click.ClickException: If no posts are found after scraping.
+    """
     handbook = scrape_all(delay=delay, verbose=verbose)
 
     if not handbook.posts:
@@ -74,7 +85,18 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
 @click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
 @click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
 def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
-    """Scrape the handbook and write only the combined markdown file."""
+    """Scrape the handbook and write only the combined markdown file.
+
+    Args:
+        output_dir: Directory where the markdown file is written.
+        delay: Seconds to wait between HTTP requests.
+        verbose: Emit progress messages during scraping.
+        commit_hash: Git commit hash to embed in the metadata page.
+        repo_url: Repository URL to embed in the metadata page.
+
+    Raises:
+        click.ClickException: If no posts are found after scraping.
+    """
     handbook = scrape_all(delay=delay, verbose=verbose)
 
     if not handbook.posts:
@@ -98,7 +120,12 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
     help="Directory where output files are written.",
 )
 def convert(markdown_file: str, output_dir: str) -> None:
-    """Convert an existing markdown file to epub and pdf (requires pandoc)."""
+    """Convert an existing markdown file to epub and pdf (requires pandoc).
+
+    Args:
+        markdown_file: Path to the source markdown file.
+        output_dir: Directory where converted files are written.
+    """
     md = Path(markdown_file)
     out = Path(output_dir)
 

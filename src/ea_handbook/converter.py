@@ -1,11 +1,15 @@
 """Convert a Handbook to markdown, epub, and pdf via pandoc."""
 
+from __future__ import annotations
+
 import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ea_handbook.scraper import Handbook
+if TYPE_CHECKING:
+    from ea_handbook.scraper import Handbook
 
 HEADING_PATTERN = re.compile(r"^(?=#+ )", flags=re.MULTILINE)
 
@@ -27,7 +31,19 @@ def _build_metadata_page(
     commit_hash: str = "",
     repo_url: str = "",
 ) -> str:
-    """Build the metadata front page as a markdown string."""
+    """Build the metadata front page as a markdown string.
+
+    The page includes the date range of posts, a two-column alphabetised
+    author table, and compiler / repository attribution.
+
+    Args:
+        handbook: Handbook whose posts supply author and date information.
+        commit_hash: Git commit hash to embed in the attribution line.
+        repo_url: Repository URL for the attribution link.
+
+    Returns:
+        Markdown string suitable for inserting at the start of the book.
+    """
     # Collect authors and dates
     authors: set[str] = set()
     dates: list[str] = []
@@ -77,9 +93,19 @@ def handbook_to_markdown(
     commit_hash: str = "",
     repo_url: str = "",
 ) -> Path:
-    """Write the handbook to a single markdown file.
+    """Write the handbook to a single combined markdown file.
 
-    Returns the path of the written file.
+    Each post is rendered under its section heading with demoted internal
+    headings so the document hierarchy stays consistent.
+
+    Args:
+        handbook: Populated ``Handbook`` with post content.
+        output_path: Destination file path (parent dirs created automatically).
+        commit_hash: Git commit hash forwarded to the metadata page.
+        repo_url: Repository URL forwarded to the metadata page.
+
+    Returns:
+        The resolved path of the written file.
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -111,7 +137,19 @@ def handbook_to_markdown(
 
 
 def _demote_headings(text: str, levels: int = 2) -> str:
-    """Increase all ATX heading levels by *levels* (e.g. # → ###), ignoring code blocks."""
+    """Increase all ATX heading levels by *levels*, ignoring code blocks.
+
+    For example, with ``levels=2`` a ``# Heading`` becomes ``### Heading``.
+    Headings inside fenced code blocks (backtick or tilde) are left
+    untouched.
+
+    Args:
+        text: Markdown text to process.
+        levels: Number of ``#`` characters to prepend.
+
+    Returns:
+        Markdown text with headings demoted.
+    """
     result: list[str] = []
     in_code_block = False
     code_block_marker: str | None = None
@@ -139,7 +177,11 @@ def _demote_headings(text: str, levels: int = 2) -> str:
 
 
 def _require_pandoc() -> str:
-    """Return the path to pandoc, raising RuntimeError if not found."""
+    """Return the path to the ``pandoc`` executable.
+
+    Raises:
+        RuntimeError: If pandoc is not found on ``$PATH``.
+    """
     pandoc = shutil.which("pandoc")
     if pandoc is None:
         raise RuntimeError(
@@ -151,7 +193,19 @@ def _require_pandoc() -> str:
 
 
 def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
-    """Convert the combined markdown file to epub using pandoc."""
+    """Convert a combined markdown file to EPUB 3 using pandoc.
+
+    Args:
+        markdown_path: Path to the source markdown file.
+        output_path: Desired output ``.epub`` path.
+
+    Returns:
+        The resolved output path.
+
+    Raises:
+        RuntimeError: If pandoc is not installed.
+        subprocess.CalledProcessError: If pandoc exits with an error.
+    """
     pandoc = _require_pandoc()
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -174,12 +228,26 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
 
 
 def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
-    """Convert the combined markdown file to pdf using pandoc + pdflatex/weasyprint."""
+    """Convert a combined markdown file to PDF using pandoc.
+
+    Prefers ``weasyprint`` as the PDF engine when available; falls back
+    to ``pdflatex``.
+
+    Args:
+        markdown_path: Path to the source markdown file.
+        output_path: Desired output ``.pdf`` path.
+
+    Returns:
+        The resolved output path.
+
+    Raises:
+        RuntimeError: If pandoc is not installed.
+        subprocess.CalledProcessError: If pandoc exits with an error.
+    """
     pandoc = _require_pandoc()
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Prefer weasyprint as pdf engine (no LaTeX needed in CI)
     pdf_engine = "weasyprint" if shutil.which("weasyprint") else "pdflatex"
 
     subprocess.run(
@@ -205,9 +273,16 @@ def build_all(
     commit_hash: str = "",
     repo_url: str = "",
 ) -> dict[str, Path]:
-    """Build markdown, epub, and pdf from a Handbook.
+    """Build markdown, EPUB, and PDF from a Handbook.
 
-    Returns a dict with keys 'markdown', 'epub', 'pdf'.
+    Args:
+        handbook: Populated ``Handbook`` with post content.
+        output_dir: Directory for all output files (created if missing).
+        commit_hash: Git commit hash forwarded to the metadata page.
+        repo_url: Repository URL forwarded to the metadata page.
+
+    Returns:
+        Dict with keys ``markdown``, ``epub``, ``pdf`` mapping to output paths.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
