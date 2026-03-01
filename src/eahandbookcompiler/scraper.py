@@ -194,7 +194,7 @@ def extract_author_json_ld(soup: BeautifulSoup) -> str:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(script.string or "")
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             continue
         if not isinstance(data, dict):
             continue
@@ -269,7 +269,7 @@ def extract_date(soup: BeautifulSoup) -> str:
                     date_str = data.get(key, "")
                     if date_str:
                         return date_str[:10]  # YYYY-MM-DD
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             continue
 
     for attr_name in ("article:published_time", "datePublished", "date"):
@@ -483,7 +483,6 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-
 def _process_post(post: Post, session: requests.Session, delay: float, cache_dir: Path | None) -> None:
     if cache_dir is not None:
         url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
@@ -495,7 +494,7 @@ def _process_post(post: Post, session: requests.Session, delay: float, cache_dir
                     post.markdown = data.get("markdown", "")
                     post.author = data.get("author", "")
                     post.posted_date = data.get("posted_date", "")
-            except (json.JSONDecodeError, OSError):
+            except json.JSONDecodeError, OSError:
                 pass
             else:
                 return
@@ -518,6 +517,7 @@ def _process_post(post: Post, session: requests.Session, delay: float, cache_dir
             pass
 
     time.sleep(delay)
+
 
 def scrape_all(
     session: requests.Session | None = None,
