@@ -1,0 +1,10 @@
+--- src/ea_handbook/scraper.py
++++ src/ea_handbook/scraper.py
+@@ -53,6 +53,8 @@
+ def _is_ea_forum_post(url: str) -> bool:
+     parsed = urlparse(url)
++    if parsed.scheme not in ("http", "https", ""):
++        return False
+     return parsed.netloc in ("forum.effectivealtruism.org", "") and (
+         "/posts/" in parsed.path or "/s/" in parsed.path
+     )

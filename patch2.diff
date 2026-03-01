@@ -1,0 +1,14 @@
+--- tests/test_scraper.py
++++ tests/test_scraper.py
+@@ -69,6 +69,11 @@
+     def test_handbook_index_url(self):
+         assert not _is_ea_forum_post("https://forum.effectivealtruism.org/handbook")
+
++    def test_invalid_scheme(self):
++        assert not _is_ea_forum_post("javascript:alert(1)")
++        assert not _is_ea_forum_post("file:///etc/passwd")
++        assert not _is_ea_forum_post("data:text/html,<script>alert(1)</script>")
++
+
+ class TestScrapeHandbookIndex:
+     def test_returns_posts(self):
