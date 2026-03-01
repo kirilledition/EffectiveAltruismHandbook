@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from markdownify import markdownify
+from markdownify import MarkdownConverter
 
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
@@ -62,16 +62,14 @@ def _is_ea_forum_post(url: str) -> bool:
 def _html_to_markdown(html_element) -> str:
     """Convert a BeautifulSoup element to clean markdown."""
     # Remove navigation, footer, and other non-content elements
-    for tag in html_element.find_all(
-        ["nav", "footer", "script", "style", "noscript"]
-    ):
+    for tag in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
         tag.decompose()
     # Remove comment sections so forum debates are not included
     for tag in html_element.find_all(
         "div", class_=lambda c: c and "comments" in c.lower()
     ):
         tag.decompose()
-    return markdownify(str(html_element), heading_style="ATX").strip()
+    return MarkdownConverter(heading_style="ATX").convert_soup(html_element).strip()
 
 
 def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Post]:
@@ -110,7 +108,9 @@ def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Po
                 if _is_ea_forum_post(url):
                     title = link.get_text(strip=True)
                     if title:
-                        posts.append(Post(title=title, url=url, section=current_section))
+                        posts.append(
+                            Post(title=title, url=url, section=current_section)
+                        )
 
     # Deduplicate while preserving order
     seen: set[str] = set()
