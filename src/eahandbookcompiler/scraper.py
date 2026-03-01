@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
 
 import click
@@ -12,6 +14,9 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Comment, Tag
 from markdownify import markdownify
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
@@ -189,7 +194,7 @@ def extract_author_json_ld(soup: BeautifulSoup) -> str:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(script.string or "")
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             continue
         if not isinstance(data, dict):
             continue
@@ -264,7 +269,7 @@ def extract_date(soup: BeautifulSoup) -> str:
                     date_str = data.get(key, "")
                     if date_str:
                         return date_str[:10]  # YYYY-MM-DD
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             continue
 
     for attr_name in ("article:published_time", "datePublished", "date"):
@@ -478,9 +483,41 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-import hashlib
-from pathlib import Path
 
+def _process_post(post: Post, session: requests.Session, delay: float, cache_dir: Path | None) -> None:
+    if cache_dir is not None:
+        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+        cache_path = cache_dir / f"{url_hash}.json"
+        if cache_path.exists():
+            try:
+                with cache_path.open(encoding="utf-8") as f:
+                    data = json.load(f)
+                    post.markdown = data.get("markdown", "")
+                    post.author = data.get("author", "")
+                    post.posted_date = data.get("posted_date", "")
+            except (json.JSONDecodeError, OSError):
+                pass
+            else:
+                return
+
+    scrape_post_content(post, session)
+
+    if cache_dir is not None:
+        try:
+            with cache_path.open("w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "markdown": post.markdown,
+                        "author": post.author,
+                        "posted_date": post.posted_date,
+                    },
+                    f,
+                    indent=2,
+                )
+        except OSError:
+            pass
+
+    time.sleep(delay)
 
 def scrape_all(
     session: requests.Session | None = None,
@@ -514,41 +551,13 @@ def scrape_all(
 
     handbook = Handbook(posts=posts)
 
-    for i, post in enumerate(handbook.posts, 1):
-        if verbose:
+    if not verbose:
+        with click.progressbar(handbook.posts, label="Scraping posts", show_pos=True) as bar:
+            for post in bar:
+                _process_post(post, session, delay, cache_dir)
+    else:
+        for i, post in enumerate(handbook.posts, 1):
             click.echo(f"  [{i}/{len(posts)}] {post.title}")
-
-        if cache_dir is not None:
-            url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
-            cache_path = cache_dir / f"{url_hash}.json"
-            if cache_path.exists():
-                try:
-                    with open(cache_path, encoding="utf-8") as f:
-                        data = json.load(f)
-                        post.markdown = data.get("markdown", "")
-                        post.author = data.get("author", "")
-                        post.posted_date = data.get("posted_date", "")
-                    continue
-                except json.JSONDecodeError, OSError:
-                    pass
-
-        scrape_post_content(post, session)
-
-        if cache_dir is not None:
-            try:
-                with open(cache_path, "w", encoding="utf-8") as f:
-                    json.dump(
-                        {
-                            "markdown": post.markdown,
-                            "author": post.author,
-                            "posted_date": post.posted_date,
-                        },
-                        f,
-                        indent=2,
-                    )
-            except OSError:
-                pass
-
-        time.sleep(delay)
+            _process_post(post, session, delay, cache_dir)
 
     return handbook

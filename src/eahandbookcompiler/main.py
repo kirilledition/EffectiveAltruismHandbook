@@ -68,7 +68,7 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
 
     paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
 
-    click.echo("Output files:")
+    click.secho("✓ Build complete! Output files:", fg="green")
     for format_name, path in paths.items():
         click.echo(f"  {format_name}: {path}")
 
@@ -126,7 +126,7 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
         commit_hash=commit_hash,
         repo_url=repo_url,
     )
-    click.echo(f"Markdown written to: {path}")
+    click.secho(f"✓ Scrape complete! Markdown written to: {path}", fg="green")
 
 
 @cli.command()
@@ -152,5 +152,6 @@ def convert(markdown_file: str, output_dir: str) -> None:
     epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
     pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
 
-    click.echo(f"epub: {epub_path}")
-    click.echo(f"pdf:  {pdf_path}")
+    click.secho("✓ Conversion complete!", fg="green")
+    click.echo(f"  epub: {epub_path}")
+    click.echo(f"  pdf:  {pdf_path}")
