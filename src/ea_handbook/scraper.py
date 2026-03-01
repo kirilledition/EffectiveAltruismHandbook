@@ -66,7 +66,12 @@ def _html_to_markdown(html_element) -> str:
         ["nav", "footer", "script", "style", "noscript"]
     ):
         tag.decompose()
-    return markdownify(str(html_element), heading_style="ATX", strip=["a"]).strip()
+    # Remove comment sections so forum debates are not included
+    for tag in html_element.find_all(
+        "div", class_=lambda c: c and "comments" in c.lower()
+    ):
+        tag.decompose()
+    return markdownify(str(html_element), heading_style="ATX").strip()
 
 
 def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Post]:
@@ -92,19 +97,20 @@ def scrape_handbook_index(session: Optional[requests.Session] = None) -> list[Po
     if content is None:
         return posts
 
-    for element in content.find_all(["h1", "h2", "h3", "a"]):
+    for element in content.find_all(["h1", "h2", "h3", "ul"]):
         tag = element.name
         if tag in ("h1", "h2", "h3"):
             current_section = element.get_text(strip=True)
-        elif tag == "a":
-            href = element.get("href", "")
-            if not href:
-                continue
-            url = urljoin(BASE_URL, href) if not href.startswith("http") else href
-            if _is_ea_forum_post(url):
-                title = element.get_text(strip=True)
-                if title:
-                    posts.append(Post(title=title, url=url, section=current_section))
+        elif tag == "ul":
+            for link in element.find_all("a", recursive=True):
+                href = link.get("href", "")
+                if not href:
+                    continue
+                url = urljoin(BASE_URL, href) if not href.startswith("http") else href
+                if _is_ea_forum_post(url):
+                    title = link.get_text(strip=True)
+                    if title:
+                        posts.append(Post(title=title, url=url, section=current_section))
 
     # Deduplicate while preserving order
     seen: set[str] = set()

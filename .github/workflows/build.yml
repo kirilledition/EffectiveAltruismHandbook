@@ -34,6 +34,8 @@ jobs:
     name: Build ebook
     runs-on: ubuntu-latest
     needs: test
+    outputs:
+      content_changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +55,39 @@ jobs:
       - name: Build ebook (markdown + epub + pdf)
         run: uv run ea-handbook build --output-dir dist --verbose
 
+      - name: Compute content hash
+        id: hash
+        run: echo "sha256=$(sha256sum dist/ea-handbook.md | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore previous content hash
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .content-hash
+          key: ea-handbook-content-hash
+
+      - name: Check for content changes
+        id: diff
+        run: |
+          if [ -f .content-hash ] && [ "$(cat .content-hash)" = "${{ steps.hash.outputs.sha256 }}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save new content hash
+        if: steps.diff.outputs.changed == 'true'
+        run: echo "${{ steps.hash.outputs.sha256 }}" > .content-hash
+
+      - name: Update content hash cache
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .content-hash
+          key: ea-handbook-content-hash-${{ steps.hash.outputs.sha256 }}
+
       - name: Upload build artifacts
+        if: steps.diff.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ea-handbook-ebook
@@ -65,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     # Only create a release on the default branch (not for PRs or forks)
-    if: github.ref == 'refs/heads/main' && github.repository == 'kirilledition/EffectiveAltruismHandbook'
+    if: github.ref == 'refs/heads/main' && github.repository == 'kirilledition/EffectiveAltruismHandbook' && needs.build.outputs.content_changed == 'true'
     steps:
       - uses: actions/checkout@v4
 
