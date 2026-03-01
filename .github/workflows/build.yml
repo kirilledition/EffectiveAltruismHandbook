@@ -65,6 +65,7 @@ jobs:
         with:
           path: .content-hash
           key: ea-handbook-content-hash
+          restore-keys: ea-handbook-content-hash
 
       - name: Check for content changes
         id: diff
