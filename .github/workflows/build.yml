@@ -1,0 +1,98 @@
+name: Build and Release EA Handbook
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Rebuild weekly on Sundays at 00:00 UTC so the ebook stays up-to-date
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run tests
+        run: uv run pytest
+
+  build:
+    name: Build ebook
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install pandoc and weasyprint
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends pandoc weasyprint
+
+      - name: Build ebook (markdown + epub + pdf)
+        run: uv run ea-handbook build --output-dir dist --verbose
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ea-handbook-ebook
+          path: dist/
+          retention-days: 30
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    # Only create a release on the default branch (not for PRs or forks)
+    if: github.ref == 'refs/heads/main' && github.repository == 'kirilledition/EffectiveAltruismHandbook'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ea-handbook-ebook
+          path: dist/
+
+      - name: Generate release tag
+        id: tag
+        run: echo "tag=handbook-$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "EA Handbook — ${{ steps.tag.outputs.tag }}"
+          body: |
+            Automated build of the [EA Handbook](https://forum.effectivealtruism.org/handbook).
+
+            **Files:**
+            - `ea-handbook.md` — combined Markdown source
+            - `ea-handbook.epub` — EPUB 3 ebook
+            - `ea-handbook.pdf` — PDF document
+          files: |
+            dist/ea-handbook.md
+            dist/ea-handbook.epub
+            dist/ea-handbook.pdf
+          token: ${{ secrets.GITHUB_TOKEN }}
