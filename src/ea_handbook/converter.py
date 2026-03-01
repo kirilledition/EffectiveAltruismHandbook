@@ -54,13 +54,30 @@ def handbook_to_markdown(handbook: Handbook, output_path: Path) -> Path:
 
 
 def _demote_headings(text: str, levels: int = 2) -> str:
-    """Increase all ATX heading levels by *levels* (e.g. # → ###)."""
+    """Increase all ATX heading levels by *levels* (e.g. # → ###), ignoring code blocks."""
     result: list[str] = []
+    in_code_block = False
+    code_block_marker = None
+
     for line in text.splitlines():
-        if re.match(r"^#+ ", line):
+        # Check if we are toggling a code block
+        match = re.match(r"^(\`\`\`|~~~)", line.strip())
+        if match:
+            marker = match.group(1)
+            if not in_code_block:
+                in_code_block = True
+                code_block_marker = marker
+            elif in_code_block and marker == code_block_marker:
+                in_code_block = False
+                code_block_marker = None
+            result.append(line)
+            continue
+
+        if not in_code_block and re.match(r"^#+ ", line):
             result.append("#" * levels + line)
         else:
             result.append(line)
+
     return "\n".join(result)
 
 
