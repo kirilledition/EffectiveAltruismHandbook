@@ -75,6 +75,18 @@ def _make_response(html: str) -> MagicMock:
 # ---------------------------------------------------------------------------
 
 
+class TestFetch:
+    def test_fetch_http_error(self):
+        import requests
+        from ea_handbook.scraper import _fetch
+        session = MagicMock()
+        response = MagicMock()
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Client Error")
+        session.get.return_value = response
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            _fetch(session, "https://example.com/not-found")
+
 class TestIsEaForumPost:
     def test_post_url(self):
         assert _is_ea_forum_post(
