@@ -15,6 +15,7 @@ from ea_handbook.converter import (
 from ea_handbook.scraper import (
     Handbook,
     Post,
+    _html_to_markdown,
     _is_ea_forum_post,
     scrape_handbook_index,
     scrape_post_content,
@@ -119,8 +120,10 @@ class TestScrapeHandbookIndex:
         html = """\
         <html><body><main>
           <h2>Intro</h2>
-          <a href="/posts/abc/title">Post A</a>
-          <a href="/posts/abc/title">Post A</a>
+          <ul>
+            <li><a href="/posts/abc/title">Post A</a></li>
+            <li><a href="/posts/abc/title">Post A</a></li>
+          </ul>
         </main></body></html>
         """
         session = MagicMock()
@@ -128,6 +131,23 @@ class TestScrapeHandbookIndex:
 
         posts = scrape_handbook_index(session)
         assert len(posts) == 1
+
+    def test_ignores_links_outside_lists(self):
+        html = """\
+        <html><body><main>
+          <h2>Intro</h2>
+          <p><a href="/posts/abc/title">Stray link</a></p>
+          <ul>
+            <li><a href="/posts/def/title">Real chapter</a></li>
+          </ul>
+        </main></body></html>
+        """
+        session = MagicMock()
+        session.get.return_value = _make_response(html)
+
+        posts = scrape_handbook_index(session)
+        assert len(posts) == 1
+        assert posts[0].title == "Real chapter"
 
     def test_empty_page_returns_empty(self):
         session = MagicMock()
@@ -184,6 +204,19 @@ class TestDemoteHeadings:
         text = "# Title\nSome text.\n## Sub"
         result = _demote_headings(text, levels=1)
         assert result == "## Title\nSome text.\n### Sub"
+
+    def test_hash_without_space_unchanged(self):
+        result = _demote_headings("#comment", levels=2)
+        assert result == "#comment"
+
+    def test_shebang_unchanged(self):
+        result = _demote_headings("#!/bin/bash", levels=2)
+        assert result == "#!/bin/bash"
+
+    def test_code_comment_without_space_unchanged(self):
+        text = "```python\n#!no heading\nprint('hello')\n```"
+        result = _demote_headings(text, levels=2)
+        assert "#!no heading" in result
 
 
 class TestHandbookToMarkdown:
@@ -245,3 +278,30 @@ class TestHandbookToMarkdown:
         content = out.read_text()
 
         assert "https://forum.effectivealtruism.org/posts/x/y" in content
+
+
+class TestHtmlToMarkdown:
+    def test_preserves_links(self):
+        from bs4 import BeautifulSoup
+
+        html = '<div><p>Read <a href="https://example.com">this study</a>.</p></div>'
+        element = BeautifulSoup(html, "lxml").find("div")
+        md = _html_to_markdown(element)
+
+        assert "https://example.com" in md
+        assert "this study" in md
+
+    def test_removes_comment_sections(self):
+        from bs4 import BeautifulSoup
+
+        html = (
+            '<div>'
+            '<p>Main content.</p>'
+            '<div class="CommentsSection"><p>A user comment.</p></div>'
+            '</div>'
+        )
+        element = BeautifulSoup(html, "lxml").find("div")
+        md = _html_to_markdown(element)
+
+        assert "Main content" in md
+        assert "user comment" not in md
