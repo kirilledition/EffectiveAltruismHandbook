@@ -480,8 +480,6 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-
-
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
