@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload markdown artifact
         if: steps.diff.outputs.changed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ea-handbook-markdown
           path: dist/ea-handbook.md
@@ -137,7 +137,7 @@ jobs:
         run: uv run ea-handbook convert dist/ea-handbook.md --output-dir dist
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ea-handbook-ebook
           path: dist/
