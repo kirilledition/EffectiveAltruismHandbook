@@ -11,7 +11,7 @@ import click
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import Comment, Tag
-from markdownify import markdownify
+from markdownify import MarkdownConverter
 
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
@@ -151,7 +151,11 @@ def html_to_markdown(html_element: Tag) -> str:
         class_=lambda c: c and "comments" in c.lower(),
     ):
         element.decompose()
-    return markdownify(str(html_element), heading_style="ATX").strip()
+    # ⚡ Bolt Optimization: Use MarkdownConverter.convert_soup() directly
+    # Passing a BeautifulSoup element to the markdownify() helper function
+    # unnecessarily serializes it to a string and re-parses it.
+    # Using convert_soup avoids this, improving HTML-to-Markdown parsing speed.
+    return MarkdownConverter(heading_style="ATX").convert_soup(html_element).strip()
 
 
 def extract_author(soup: BeautifulSoup) -> str:
@@ -399,7 +403,10 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     soup = fetch(session, HANDBOOK_URL)
 
     # Look for the main content area, avoiding TableOfContents which has 'content' in the name
-    content = soup.find("div", class_=lambda c: c and "content" in c.lower() and "tableofcontents" not in c.lower())
+    content = soup.find(
+        "div",
+        class_=lambda c: c and "content" in c.lower() and "tableofcontents" not in c.lower(),
+    )
     if content is None:
         content = soup.find("main") or soup.find("article") or soup.body
 

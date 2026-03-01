@@ -47,7 +47,14 @@ def cli() -> None:
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
-def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
+def build(
+    output_dir: str,
+    delay: float,
+    verbose: bool,
+    commit_hash: str,
+    repo_url: str,
+    cache_dir: str,
+) -> None:
     """Scrape the handbook and build markdown, epub, and pdf.
 
     Args:
@@ -101,7 +108,14 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
-def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
+def scrape(
+    output_dir: str,
+    delay: float,
+    verbose: bool,
+    commit_hash: str,
+    repo_url: str,
+    cache_dir: str,
+) -> None:
     """Scrape the handbook and write only the combined markdown file.
 
     Args:
