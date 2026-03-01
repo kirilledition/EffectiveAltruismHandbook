@@ -62,7 +62,7 @@ jobs:
 
       - name: Scrape handbook (markdown only)
         run: |
-          uv run eahandbookcompiler scrape --output-dir dist --verbose \
+          uv run python -m eahandbookcompiler scrape --output-dir dist --verbose \
             --commit-hash "${{ github.sha }}" \
             --repo-url "https://github.com/${{ github.repository }}"
 
@@ -134,7 +134,7 @@ jobs:
           path: dist/
 
       - name: Convert to epub and pdf
-        run: uv run eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
+        run: uv run python -m eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

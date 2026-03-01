@@ -457,7 +457,8 @@ class TestConvertToEpub:
                 f"--output={test_output_path}",
                 "--toc",
                 "--toc-depth=2",
-                "--epub-chapter-level=2",
+                "--split-level=2",
+                f"--css={test_output_path.parent / 'epub.css'}",
             ],
             check=True,
         )

@@ -315,18 +315,31 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
     return max(divisions, key=lambda d: div_text_lengths.get(id(d), 0))
 
 
-def extract_posts_from_content(content: Tag) -> list[Post]:
-    """Parse the handbook content area and extract posts with sections.
+def _extract_from_react_structure(content: Tag) -> list[Post]:
+    posts: list[Post] = []
+    items = content.find_all("div", class_=lambda c: c and "LargeSequencesItem-columns" in c)
+    for item in items:
+        title_tag = item.find("div", class_=lambda c: c and "LargeSequencesItem-titleAndAuthor" in c)
+        current_section = "Introduction"
+        if title_tag:
+            a_tag = title_tag.find("a")
+            current_section = a_tag.get_text(strip=True) if a_tag else title_tag.get_text(strip=True)
 
-    Section names are determined by ``<h1>``-``<h3>`` headings; post
-    links are collected from ``<ul>`` lists that follow them.
+        right = item.find("div", class_=lambda c: c and "LargeSequencesItem-right" in c)
+        if right:
+            for link in right.find_all("a", recursive=True):
+                href = str(link.get("href", ""))
+                if not href:
+                    continue
+                url = urljoin(BASE_URL, href) if not href.startswith("http") else href
+                if is_ea_forum_post(url):
+                    title = link.get_text(strip=True)
+                    if title:
+                        posts.append(Post(title=title, url=url, section=current_section))
+    return posts
 
-    Args:
-        content: BeautifulSoup element wrapping the handbook table of contents.
 
-    Returns:
-        List of ``Post`` objects (without content populated).
-    """
+def _extract_from_heading_structure(content: Tag) -> list[Post]:
     posts: list[Post] = []
     current_section = "Introduction"
 
@@ -347,6 +360,28 @@ def extract_posts_from_content(content: Tag) -> list[Post]:
     return posts
 
 
+def extract_posts_from_content(content: Tag) -> list[Post]:
+    """Parse the handbook content area and extract posts with sections.
+
+    Section names are determined by ``<h1>``-``<h3>`` headings; post
+    links are collected from ``<ul>`` lists that follow them. Also supports
+    the newer React ``LargeSequencesItem`` component structure.
+
+    Args:
+        content: BeautifulSoup element wrapping the handbook table of contents.
+
+    Returns:
+        List of ``Post`` objects (without content populated).
+    """
+    # Try the new React LargeSequencesItem structure first
+    posts = _extract_from_react_structure(content)
+    if posts:
+        return posts
+
+    # Fallback to older heading-based structure
+    return _extract_from_heading_structure(content)
+
+
 def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]:
     """Fetch the handbook index and return a list of Posts.
 
@@ -363,10 +398,14 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
 
     soup = fetch(session, HANDBOOK_URL)
 
-    # Look for the main content area
-    content = soup.find("div", class_=lambda c: c and "content" in c.lower())
+    # Look for the main content area, avoiding TableOfContents which has 'content' in the name
+    content = soup.find("div", class_=lambda c: c and "content" in c.lower() and "tableofcontents" not in c.lower())
     if content is None:
         content = soup.find("main") or soup.find("article") or soup.body
+
+    # If we notice LargeSequencesItem anywhere in the body, prefer the full body to avoid missing them
+    if soup.find("div", class_=lambda c: c and "LargeSequencesItem-columns" in c):
+        content = soup.body
 
     if content is None:
         return []
@@ -439,10 +478,15 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
+import hashlib
+from pathlib import Path
+
+
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
     verbose: bool = False,
+    cache_dir: Path | None = None,
 ) -> Handbook:
     """Scrape the full handbook: index + all post contents.
 
@@ -450,6 +494,7 @@ def scrape_all(
         session: Optional requests session (useful for testing with mocks).
         delay: Seconds to wait between requests (be polite to the server).
         verbose: Emit progress messages via ``click.echo``.
+        cache_dir: Optional directory to cache downloaded posts.
 
     Returns:
         A ``Handbook`` containing every post with content populated.
@@ -464,12 +509,46 @@ def scrape_all(
     if verbose:
         click.echo(f"Found {len(posts)} posts. Fetching content …")
 
+    if cache_dir is not None:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
     handbook = Handbook(posts=posts)
 
     for i, post in enumerate(handbook.posts, 1):
         if verbose:
             click.echo(f"  [{i}/{len(posts)}] {post.title}")
+
+        if cache_dir is not None:
+            url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+            cache_path = cache_dir / f"{url_hash}.json"
+            if cache_path.exists():
+                try:
+                    with open(cache_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                        post.markdown = data.get("markdown", "")
+                        post.author = data.get("author", "")
+                        post.posted_date = data.get("posted_date", "")
+                    continue
+                except json.JSONDecodeError, OSError:
+                    pass
+
         scrape_post_content(post, session)
+
+        if cache_dir is not None:
+            try:
+                with open(cache_path, "w", encoding="utf-8") as f:
+                    json.dump(
+                        {
+                            "markdown": post.markdown,
+                            "author": post.author,
+                            "posted_date": post.posted_date,
+                        },
+                        f,
+                        indent=2,
+                    )
+            except OSError:
+                pass
+
         time.sleep(delay)
 
     return handbook

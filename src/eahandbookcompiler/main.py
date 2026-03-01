@@ -10,7 +10,7 @@ from eahandbookcompiler.converter import (
     convert_to_pdf,
     handbook_to_markdown,
 )
-from eahandbookcompiler.scraper import scrape_all
+from eahandbookcompiler.scraper import REQUEST_DELAY, scrape_all
 
 
 @click.group()
@@ -31,7 +31,7 @@ def cli() -> None:
 @click.option(
     "--delay",
     "-d",
-    default=1.0,
+    default=REQUEST_DELAY,
     show_default=True,
     type=float,
     help="Seconds to wait between HTTP requests.",
@@ -39,7 +39,15 @@ def cli() -> None:
 @click.option("--verbose", "-v", is_flag=True, help="Print progress.")
 @click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
 @click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
-def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
+@click.option(
+    "--cache-dir",
+    "-c",
+    default=".cache",
+    show_default=True,
+    type=click.Path(file_okay=False, writable=True),
+    help="Directory to cache downloaded posts.",
+)
+def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
     """Scrape the handbook and build markdown, epub, and pdf.
 
     Args:
@@ -48,11 +56,12 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
         verbose: Emit progress messages during scraping.
         commit_hash: Git commit hash to embed in the metadata page.
         repo_url: Repository URL to embed in the metadata page.
+        cache_dir: Directory to cache downloaded posts.
 
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(delay=delay, verbose=verbose)
+    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
@@ -76,7 +85,7 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
 @click.option(
     "--delay",
     "-d",
-    default=1.0,
+    default=REQUEST_DELAY,
     show_default=True,
     type=float,
     help="Seconds to wait between HTTP requests.",
@@ -84,7 +93,15 @@ def build(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_u
 @click.option("--verbose", "-v", is_flag=True, help="Print progress.")
 @click.option("--commit-hash", default="", help="Git commit hash to embed in metadata.")
 @click.option("--repo-url", default="", help="Repository URL to embed in metadata.")
-def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str) -> None:
+@click.option(
+    "--cache-dir",
+    "-c",
+    default=".cache",
+    show_default=True,
+    type=click.Path(file_okay=False, writable=True),
+    help="Directory to cache downloaded posts.",
+)
+def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_url: str, cache_dir: str) -> None:
     """Scrape the handbook and write only the combined markdown file.
 
     Args:
@@ -93,11 +110,12 @@ def scrape(output_dir: str, delay: float, verbose: bool, commit_hash: str, repo_
         verbose: Emit progress messages during scraping.
         commit_hash: Git commit hash to embed in the metadata page.
         repo_url: Repository URL to embed in the metadata page.
+        cache_dir: Directory to cache downloaded posts.
 
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(delay=delay, verbose=verbose)
+    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")

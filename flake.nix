@@ -18,11 +18,12 @@
           buildInputs = with pkgs; [
             uv
             gh
+            pandoc
           ];
 
           shellHook = ''
             uv python install 3.14
-            uv sync --group dev
+            uv sync --upgrade --group dev
           '';
         };
       });

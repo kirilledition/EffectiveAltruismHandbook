@@ -210,6 +210,11 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Workaround for nixpkgs pandoc missing epub.css
+    dummy_css = output_path.parent / "epub.css"
+    if not dummy_css.exists():
+        dummy_css.write_text("/* Custom EPUB CSS */\n", encoding="utf-8")
+
     subprocess.run(
         [
             pandoc,
@@ -220,7 +225,8 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
             f"--output={output_path}",
             "--toc",
             "--toc-depth=2",
-            "--epub-chapter-level=2",
+            "--split-level=2",
+            f"--css={dummy_css}",
         ],
         check=True,
     )

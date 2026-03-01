@@ -16,11 +16,11 @@ on the [Releases page](../../releases).
 
 ## Requirements
 
-| Tool | Purpose |
-|------|---------|
-| Python ≥ 3.12 | Runtime |
-| [uv](https://docs.astral.sh/uv/) | Dependency management |
-| [pandoc](https://pandoc.org) | EPUB / PDF conversion |
+| Tool                                              | Purpose                         |
+| ------------------------------------------------- | ------------------------------- |
+| Python ≥ 3.14                                     | Runtime                         |
+| [uv](https://docs.astral.sh/uv/)                  | Dependency management           |
+| [pandoc](https://pandoc.org)                      | EPUB / PDF conversion           |
 | [weasyprint](https://weasyprint.org) *(optional)* | PDF engine (fallback: pdflatex) |
 
 Install pandoc via your package manager, e.g.:
@@ -53,19 +53,19 @@ uv sync
 ### Build everything (markdown + epub + pdf)
 
 ```bash
-uv run eahandbookcompiler build --output-dir dist --verbose
+uv run python -m eahandbookcompiler build --output-dir dist --verbose
 ```
 
 ### Scrape only (markdown output)
 
 ```bash
-uv run eahandbookcompiler scrape --output-dir dist --verbose
+uv run python -m eahandbookcompiler scrape --output-dir dist --verbose
 ```
 
 ### Convert an existing markdown file
 
 ```bash
-uv run eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
+uv run python -m eahandbookcompiler convert dist/eahandbookcompiler.md --output-dir dist
 ```
 
 ### Options
@@ -90,7 +90,7 @@ uv sync --dev
 uv run pytest
 
 # Run the CLI from source
-uv run eahandbookcompiler --help
+uv run python -m eahandbookcompiler --help
 ```
 
 ---
