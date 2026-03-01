@@ -17,12 +17,12 @@
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
             uv
+            gh
           ];
 
           shellHook = ''
-            echo "Setting up Python 3.14 using uv..."
             uv python install 3.14
-            echo "Run 'uv sync' or 'uv venv' to set up the virtual environment."
+            uv sync --group dev
           '';
         };
       });

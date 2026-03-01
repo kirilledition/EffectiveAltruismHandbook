@@ -71,6 +71,7 @@ def _make_response(html: str) -> MagicMock:
     response = MagicMock()
     response.text = html
     response.raise_for_status = MagicMock()
+    response.is_redirect = False
     return response
 
 
@@ -82,12 +83,14 @@ def _make_response(html: str) -> MagicMock:
 class TestFetch:
     def test_fetch_http_error(self):
         import requests
+
         from ea_handbook.scraper import _fetch
 
         session = MagicMock()
         response = MagicMock()
+        response.is_redirect = False
         response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "404 Client Error"
+            "404 Client Error",
         )
         session.get.return_value = response
 
@@ -98,7 +101,7 @@ class TestFetch:
 class TestIsEaForumPost:
     def test_post_url(self):
         assert _is_ea_forum_post(
-            "https://forum.effectivealtruism.org/posts/abc123/title"
+            "https://forum.effectivealtruism.org/posts/abc123/title",
         )
 
     def test_sequence_url(self):
@@ -112,6 +115,11 @@ class TestIsEaForumPost:
 
     def test_handbook_index_url(self):
         assert not _is_ea_forum_post("https://forum.effectivealtruism.org/handbook")
+
+    def test_invalid_scheme(self):
+        assert not _is_ea_forum_post("javascript:alert(1)")
+        assert not _is_ea_forum_post("file:///etc/passwd")
+        assert not _is_ea_forum_post("data:text/html,<script>alert(1)</script>")
 
 
 class TestScrapeHandbookIndex:
@@ -293,8 +301,8 @@ class TestHandbookToMarkdown:
                     url="https://example.com",
                     section="Intro",
                     markdown="Hello world.",
-                )
-            ]
+                ),
+            ],
         )
         out = tmp_path / "output.md"
         result = handbook_to_markdown(handbook, out)
@@ -310,7 +318,7 @@ class TestHandbookToMarkdown:
             posts=[
                 Post(title="A", url="u1", section="Sec", markdown="text"),
                 Post(title="B", url="u2", section="Sec", markdown="text"),
-            ]
+            ],
         )
         out = tmp_path / "output.md"
         handbook_to_markdown(handbook, out)
@@ -333,8 +341,8 @@ class TestHandbookToMarkdown:
                     url="https://forum.effectivealtruism.org/posts/x/y",
                     section="S",
                     markdown="",
-                )
-            ]
+                ),
+            ],
         )
         out = tmp_path / "output.md"
         handbook_to_markdown(handbook, out)
@@ -353,7 +361,7 @@ class TestHandbookToMarkdown:
                     posted_date="2023-01-15",
                     markdown="text",
                 ),
-            ]
+            ],
         )
         out = tmp_path / "output.md"
         handbook_to_markdown(handbook, out)
@@ -371,7 +379,7 @@ class TestBuildMetadataPage:
                 Post(title="A", url="u", author="Zara", posted_date="2023-01-01", markdown="m"),
                 Post(title="B", url="u", author="Alice", posted_date="2023-06-01", markdown="m"),
                 Post(title="C", url="u", author="Bob", posted_date="2023-03-15", markdown="m"),
-            ]
+            ],
         )
         page = _build_metadata_page(handbook)
 
@@ -388,7 +396,7 @@ class TestBuildMetadataPage:
 
     def test_no_authors_no_dates(self):
         handbook = Handbook(
-            posts=[Post(title="A", url="u", markdown="m")]
+            posts=[Post(title="A", url="u", markdown="m")],
         )
         page = _build_metadata_page(handbook)
 
@@ -466,3 +474,89 @@ class TestConvertToPdf:
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert "--sandbox" in args
+
+
+class TestFetchRedirects:
+    def test_fetch_no_redirect(self):
+        session = MagicMock()
+        response = _make_response("<html><body>content</body></html>")
+        response.is_redirect = False
+        session.get.return_value = response
+
+        from ea_handbook.scraper import _fetch
+
+        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "content"
+        session.get.assert_called_once_with(
+            "https://forum.effectivealtruism.org/post",
+            timeout=30,
+            allow_redirects=False,
+        )
+
+    def test_fetch_safe_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {
+            "Location": "https://effectivealtruism.org/new-post",
+        }
+
+        final_response = _make_response("<html><body>content</body></html>")
+        final_response.is_redirect = False
+
+        session.get.side_effect = [redirect_response, final_response]
+
+        from ea_handbook.scraper import _fetch
+
+        soup = _fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "content"
+        assert session.get.call_count == 2
+
+    def test_fetch_unsafe_domain_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "https://evil.com/post"}
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+
+        with pytest.raises(ValueError, match="Unsafe redirect domain: evil.com"):
+            _fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_fetch_unsafe_scheme_redirect(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "file:///etc/passwd"}
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+
+        with pytest.raises(ValueError, match="Unsafe redirect scheme: file"):
+            _fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_fetch_too_many_redirects(self):
+        import requests as req
+
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {
+            "Location": "https://forum.effectivealtruism.org/redirect",
+        }
+
+        session.get.return_value = redirect_response
+
+        from ea_handbook.scraper import _fetch
+
+        with pytest.raises(
+            req.TooManyRedirects, match="Exceeded maximum redirects",
+        ):
+            _fetch(session, "https://forum.effectivealtruism.org/post")

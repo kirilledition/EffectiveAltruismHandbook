@@ -41,20 +41,48 @@ def _make_session() -> requests.Session:
             "User-Agent": (
                 "Mozilla/5.0 (compatible; EA-Handbook-Bot/1.0; "
                 "+https://github.com/kirilledition/EffectiveAltruismHandbook)"
-            )
-        }
+            ),
+        },
     )
     return session
 
 
 def _fetch(session: requests.Session, url: str) -> BeautifulSoup:
-    response = session.get(url, timeout=30)
+    current_url = url
+    for _ in range(5):
+        response = session.get(current_url, timeout=30, allow_redirects=False)
+        if response.is_redirect:
+            location = response.headers.get("Location")
+            if not location:
+                break
+
+            redirect_url = urljoin(current_url, location)
+            parsed = urlparse(redirect_url)
+
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
+
+            netloc = parsed.netloc.split(":")[0]
+            if not (
+                netloc == "effectivealtruism.org"
+                or netloc.endswith(".effectivealtruism.org")
+            ):
+                raise ValueError(f"Unsafe redirect domain: {netloc}")
+
+            current_url = redirect_url
+        else:
+            break
+    else:
+        raise requests.TooManyRedirects(f"Exceeded maximum redirects for {url}")
+
     response.raise_for_status()
     return BeautifulSoup(response.text, "lxml")
 
 
 def _is_ea_forum_post(url: str) -> bool:
     parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https", ""):
+        return False
     return parsed.netloc in ("forum.effectivealtruism.org", "") and (
         "/posts/" in parsed.path or "/s/" in parsed.path
     )
@@ -67,7 +95,7 @@ def _html_to_markdown(html_element: Tag) -> str:
         tag.decompose()
     # Remove comment sections so forum debates are not included
     for tag in html_element.find_all(
-        "div", class_=lambda c: c and "comments" in c.lower()
+        "div", class_=lambda c: c and "comments" in c.lower(),
     ):
         tag.decompose()
     return markdownify(str(html_element), heading_style="ATX").strip()
@@ -100,7 +128,7 @@ def _extract_author(soup: BeautifulSoup) -> str:
         tag = soup.find(
             lambda t: t.name in ("a", "span", "div")
             and t.get("class")
-            and any(class_pattern.lower() in c.lower() for c in t["class"])
+            and any(class_pattern.lower() in c.lower() for c in t["class"]),
         )
         if tag:
             text = tag.get_text(strip=True)
@@ -127,7 +155,7 @@ def _extract_date(soup: BeautifulSoup) -> str:
     # Strategy 2: <meta> date tags
     for attr_name in ("article:published_time", "datePublished", "date"):
         meta = soup.find("meta", attrs={"property": attr_name}) or soup.find(
-            "meta", attrs={"name": attr_name}
+            "meta", attrs={"name": attr_name},
         )
         if meta and meta.get("content"):
             return meta["content"].strip()[:10]
@@ -141,8 +169,7 @@ def _extract_date(soup: BeautifulSoup) -> str:
 
 
 def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]:
-    """
-    Fetch the handbook index and return a list of Posts with title/url/section.
+    """Fetch the handbook index and return a list of Posts with title/url/section.
     Content is not yet fetched at this stage.
     """
     if session is None:
@@ -177,7 +204,7 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
                     title = link.get_text(strip=True)
                     if title:
                         posts.append(
-                            Post(title=title, url=url, section=current_section)
+                            Post(title=title, url=url, section=current_section),
                         )
 
     # Deduplicate while preserving order
@@ -247,8 +274,7 @@ def scrape_all(
     delay: float = REQUEST_DELAY,
     verbose: bool = False,
 ) -> Handbook:
-    """
-    Scrape the full handbook: index + all post contents.
+    """Scrape the full handbook: index + all post contents.
 
     Parameters
     ----------
@@ -258,6 +284,7 @@ def scrape_all(
         Seconds to wait between requests (be polite to the server).
     verbose:
         Print progress information.
+
     """
     if session is None:
         session = _make_session()

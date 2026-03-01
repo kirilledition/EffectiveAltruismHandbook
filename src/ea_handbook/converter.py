@@ -65,7 +65,7 @@ def _build_metadata_page(
         f"*This ebook was compiled by Kirill Denisov using "
         f"[{repo_url.removeprefix('https://')}]({repo_url})"
         f"{commit_part}. "
-        f"Last text update was on {latest}.*\n\n"
+        f"Last text update was on {latest}.*\n\n",
     )
 
     return "".join(parts)
@@ -77,8 +77,7 @@ def handbook_to_markdown(
     commit_hash: str = "",
     repo_url: str = "",
 ) -> Path:
-    """
-    Write the handbook to a single markdown file.
+    """Write the handbook to a single markdown file.
 
     Returns the path of the written file.
     """
@@ -112,8 +111,31 @@ def handbook_to_markdown(
 
 
 def _demote_headings(text: str, levels: int = 2) -> str:
-    """Increase all ATX heading levels by *levels* (e.g. # → ###)."""
-    return HEADING_PATTERN.sub("#" * levels, text)
+    """Increase all ATX heading levels by *levels* (e.g. # → ###), ignoring code blocks."""
+    result: list[str] = []
+    in_code_block = False
+    code_block_marker: str | None = None
+
+    for line in text.splitlines():
+        # Check if we are toggling a code block
+        match = re.match(r"^(```|~~~)", line.strip())
+        if match:
+            marker = match.group(1)
+            if not in_code_block:
+                in_code_block = True
+                code_block_marker = marker
+            elif marker == code_block_marker:
+                in_code_block = False
+                code_block_marker = None
+            result.append(line)
+            continue
+
+        if not in_code_block and re.match(r"^#+ ", line):
+            result.append("#" * levels + line)
+        else:
+            result.append(line)
+
+    return "\n".join(result)
 
 
 def _require_pandoc() -> str:
@@ -123,7 +145,7 @@ def _require_pandoc() -> str:
         raise RuntimeError(
             "pandoc is not installed. "
             "Install it from https://pandoc.org/installing.html "
-            "or via your system package manager."
+            "or via your system package manager.",
         )
     return pandoc
 
@@ -183,8 +205,7 @@ def build_all(
     commit_hash: str = "",
     repo_url: str = "",
 ) -> dict[str, Path]:
-    """
-    Build markdown, epub, and pdf from a Handbook.
+    """Build markdown, epub, and pdf from a Handbook.
 
     Returns a dict with keys 'markdown', 'epub', 'pdf'.
     """
