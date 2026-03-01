@@ -483,8 +483,6 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-
-
 def _read_cache(cache_path: Path, post: Post) -> bool:
     if not cache_path.exists():
         return False
@@ -494,10 +492,11 @@ def _read_cache(cache_path: Path, post: Post) -> bool:
             post.markdown = data.get("markdown", "")
             post.author = data.get("author", "")
             post.posted_date = data.get("posted_date", "")
-    except (json.JSONDecodeError, OSError):
+    except json.JSONDecodeError, OSError:
         return False
     else:
         return True
+
 
 def _write_cache(cache_path: Path, post: Post) -> None:
     try:
@@ -513,6 +512,7 @@ def _write_cache(cache_path: Path, post: Post) -> None:
             )
     except OSError:
         pass
+
 
 def scrape_all(
     session: requests.Session | None = None,

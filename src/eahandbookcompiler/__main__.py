@@ -1,4 +1,5 @@
 """Entry point for the eahandbookcompiler CLI."""
+
 import sys
 
 from eahandbookcompiler.main import cli
