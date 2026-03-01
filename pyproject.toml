@@ -55,7 +55,7 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "src/eahandbookcompiler/main.py" = ["FBT001", "FBT002", "PLR0913"] # Click boolean flags + CLI params
-"src/eahandbookcompiler/scraper.py" = ["FBT001", "FBT002"] # verbose bool param
+"src/eahandbookcompiler/scraper.py" = ["FBT001", "FBT002"] # Click-style boolean params
 "tests/**" = [
     "S101",    # assert is standard in pytest
     "ANN",     # annotations not needed in tests

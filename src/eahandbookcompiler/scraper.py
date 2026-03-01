@@ -549,7 +549,6 @@ def _save_cached_post(post: Post, cache_dir: Path) -> None:
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
-    *,
     cache_dir: Path | None = None,
 ) -> Handbook:
     """Scrape the full handbook: index + all post contents.
