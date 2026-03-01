@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -56,7 +57,7 @@ def _demote_headings(text: str, levels: int = 2) -> str:
     """Increase all ATX heading levels by *levels* (e.g. # → ###)."""
     result: list[str] = []
     for line in text.splitlines():
-        if line.startswith("#"):
+        if re.match(r"^#+ ", line):
             result.append("#" * levels + line)
         else:
             result.append(line)
