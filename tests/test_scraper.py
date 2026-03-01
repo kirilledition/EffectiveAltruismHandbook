@@ -416,6 +416,7 @@ class TestHtmlToMarkdown:
 
         html = '<div><p>Read <a href="https://example.com">this study</a>.</p></div>'
         element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
         md = _html_to_markdown(element)
 
         assert "https://example.com" in md
@@ -429,6 +430,7 @@ class TestHtmlToMarkdown:
             "</div>"
         )
         element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
         md = _html_to_markdown(element)
 
         assert "Main content" in md

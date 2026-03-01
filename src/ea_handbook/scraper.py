@@ -218,7 +218,7 @@ def _extract_author_meta(soup: BeautifulSoup) -> str:
     """
     meta_author = soup.find("meta", attrs={"name": "author"})
     if meta_author and meta_author.get("content"):
-        return meta_author["content"].strip()
+        return str(meta_author["content"]).strip()
     return ""
 
 
@@ -276,11 +276,11 @@ def _extract_date(soup: BeautifulSoup) -> str:
             "meta", attrs={"name": attr_name},
         )
         if meta and meta.get("content"):
-            return meta["content"].strip()[:10]
+            return str(meta["content"]).strip()[:10]
 
     time_tag = soup.find("time", attrs={"datetime": True})
     if time_tag:
-        return time_tag["datetime"][:10]
+        return str(time_tag["datetime"])[:10]
 
     return ""
 
@@ -339,7 +339,7 @@ def _extract_posts_from_content(content: Tag) -> list[Post]:
             current_section = element.get_text(strip=True)
         elif tag_name == "ul":
             for link in element.find_all("a", recursive=True):
-                href = link.get("href", "")
+                href = str(link.get("href", ""))
                 if not href:
                     continue
                 url = urljoin(BASE_URL, href) if not href.startswith("http") else href

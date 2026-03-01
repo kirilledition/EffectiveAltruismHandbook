@@ -65,3 +65,9 @@ convention = "google"
     "PLR2004", # magic values are fine in tests
     "INP001",  # tests directory is not a package
 ]
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.src]
+include = ["src", "tests"]
