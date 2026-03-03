@@ -18,6 +18,7 @@ from eahandbookcompiler.scraper import (
     extract_date,
     html_to_markdown,
     is_ea_forum_post,
+    scrape_all,
     scrape_handbook_index,
     scrape_post_content,
 )
@@ -219,6 +220,61 @@ class TestScrapePostContent:
 
         assert result.author == "William MacAskill"
         assert result.posted_date == "2023-06-15"
+
+
+class TestScrapeAllConcurrent:
+    def test_concurrent_populates_all_posts(self):
+        session = MagicMock()
+        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+        post_response = _make_response(SAMPLE_POST_HTML)
+        session.get.side_effect = [index_response, post_response, post_response, post_response]
+
+        handbook = scrape_all(session=session, delay=0, max_workers=2)
+
+        assert len(handbook.posts) == 3
+        for post in handbook.posts:
+            assert post.markdown
+            assert post.author == "William MacAskill"
+
+    def test_sequential_populates_all_posts(self):
+        session = MagicMock()
+        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+        post_response = _make_response(SAMPLE_POST_HTML)
+        session.get.side_effect = [index_response, post_response, post_response, post_response]
+
+        handbook = scrape_all(session=session, delay=0, max_workers=1)
+
+        assert len(handbook.posts) == 3
+        for post in handbook.posts:
+            assert post.markdown
+
+    def test_concurrent_with_cache(self, tmp_path):
+        session = MagicMock()
+        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+        post_response = _make_response(SAMPLE_POST_HTML)
+        session.get.side_effect = [index_response, post_response, post_response, post_response]
+
+        handbook = scrape_all(session=session, delay=0, max_workers=2, cache_dir=tmp_path)
+
+        assert len(handbook.posts) == 3
+        cache_files = list(tmp_path.glob("*.json"))
+        assert len(cache_files) == 3
+
+    def test_concurrent_propagates_errors(self):
+        import requests as req
+
+        session = MagicMock()
+        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+
+        error_response = MagicMock()
+        error_response.is_redirect = False
+        error_response.raise_for_status.side_effect = req.exceptions.HTTPError("500 Server Error")
+
+        post_response = _make_response(SAMPLE_POST_HTML)
+        session.get.side_effect = [index_response, error_response, post_response, post_response]
+
+        with pytest.raises(req.exceptions.HTTPError):
+            scrape_all(session=session, delay=0, max_workers=2)
 
 
 class TestExtractAuthor:
