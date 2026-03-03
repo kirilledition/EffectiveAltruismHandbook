@@ -11,8 +11,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from eahandbookcompiler.scraper import Handbook
 
-HEADING_PATTERN = re.compile(r"^(?=#+ )", flags=re.MULTILINE)
-
 PANDOC_METADATA = """\
 ---
 title: "The Effective Altruism Handbook"

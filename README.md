@@ -97,14 +97,13 @@ uv run python -m eahandbookcompiler --help
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/build.yml`:
-
-1. **test** — runs the test suite on every push to `main`.
-2. **build** — scrapes the handbook and builds all three formats.
-3. **release** — creates a tagged GitHub Release with the three output files.
-
-The workflow is also triggered weekly via a `schedule` cron (Sundays 00:00 UTC)
-so the ebook always reflects the latest handbook content.
+| Workflow | Trigger | Purpose |
+| --- | --- | --- |
+| `test.yml` | Push to `main`, PRs | Runs the test suite and updates the coverage badge |
+| `lint.yml` | Push to `main`, PRs | Runs Ruff formatter/linter and auto-commits fixes |
+| `ty.yml` | Push to `main`, PRs | Runs the `ty` type checker |
+| `build.yml` | Weekly (Sun 00:00 UTC), manual | Scrapes, builds, and releases the ebook |
+| `update-dependencies.yml` | Manual | Updates uv lockfile, Actions versions, and Python patch version |
 
 ### Coverage badge setup
 

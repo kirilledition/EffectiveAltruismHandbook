@@ -601,7 +601,7 @@ def scrape_all(
     handbook = Handbook(posts=posts)
 
     if max_workers > 1:
-        _scrape_posts_concurrent(handbook.posts, session, cache_dir, max_workers, verbose=verbose)
+        _scrape_posts_concurrent(handbook.posts, cache_dir, max_workers, verbose=verbose)
     else:
         _scrape_posts_sequential(handbook.posts, session, cache_dir, delay, verbose=verbose)
 
@@ -628,7 +628,6 @@ def _scrape_posts_sequential(
 
 def _scrape_posts_concurrent(
     posts: list[Post],
-    session: requests.Session,
     cache_dir: Path | None,
     max_workers: int,
     *,
@@ -636,13 +635,17 @@ def _scrape_posts_concurrent(
 ) -> None:
     """Download posts concurrently using a thread pool.
 
+    Each worker thread creates its own ``requests.Session`` via
+    ``make_session()`` because ``Session`` objects are not thread-safe.
+
     Progress messages may appear out of order since tasks complete
     at different times.
     """
     total = len(posts)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {
-            executor.submit(_process_single_post, post, session, cache_dir): i for i, post in enumerate(posts)
+            executor.submit(_process_single_post, post, make_session(), cache_dir): i
+            for i, post in enumerate(posts)
         }
         for future in as_completed(future_to_index):
             idx = future_to_index[future]
