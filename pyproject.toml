@@ -54,7 +54,7 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"src/eahandbookcompiler/main.py" = ["FBT001", "FBT002"] # Click boolean flags
+"src/eahandbookcompiler/main.py" = ["FBT001", "FBT002", "PLR0913"] # Click boolean flags, many CLI params
 "src/eahandbookcompiler/scraper.py" = ["FBT001", "FBT002"] # verbose bool param
 "tests/**" = [
     "S101",    # assert is standard in pytest

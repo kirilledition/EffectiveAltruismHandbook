@@ -1,9 +1,6 @@
 name: Build and Release EA Handbook
 
 on:
-  push:
-    branches:
-      - main
   schedule:
     # Rebuild weekly on Sundays at 00:00 UTC so the ebook stays up-to-date
     - cron: "0 0 * * 0"
@@ -152,30 +149,46 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           name: eahandbookcompiler-ebook
           path: dist/
 
-      - name: Generate release tag
-        id: tag
-        run: echo "tag=handbook-$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+      - name: Build Python wheel
+        run: uv build --wheel --out-dir dist/
+
+      - name: Generate release date and rename files
+        id: meta
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          mv dist/eahandbookcompiler.epub "dist/EA Handbook — ${DATE}.epub"
+          mv dist/eahandbookcompiler.pdf "dist/EA Handbook — ${DATE}.pdf"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "EA Handbook — ${{ steps.tag.outputs.tag }}"
+          tag_name: ${{ steps.meta.outputs.date }}
+          name: "EA Handbook - ${{ steps.meta.outputs.date }}"
           body: |
             Automated build of the [EA Handbook](https://forum.effectivealtruism.org/handbook).
 
             **Files:**
-            - `eahandbookcompiler.md` — combined Markdown source
-            - `eahandbookcompiler.epub` — EPUB 3 ebook
-            - `eahandbookcompiler.pdf` — PDF document
+            - `EA Handbook — ${{ steps.meta.outputs.date }}.epub` — EPUB 3 ebook
+            - `EA Handbook — ${{ steps.meta.outputs.date }}.pdf` — PDF document
+            - `eahandbookcompiler-*.whl` — Python wheel (install with `uv pip install`)
           files: |
-            dist/eahandbookcompiler.md
-            dist/eahandbookcompiler.epub
-            dist/eahandbookcompiler.pdf
+            dist/EA Handbook — ${{ steps.meta.outputs.date }}.epub
+            dist/EA Handbook — ${{ steps.meta.outputs.date }}.pdf
+            dist/*.whl
           token: ${{ secrets.GITHUB_TOKEN }}
+          make_latest: true

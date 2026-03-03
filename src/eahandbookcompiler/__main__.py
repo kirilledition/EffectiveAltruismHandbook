@@ -1,3 +1,5 @@
+"""Entry point for ``python -m eahandbookcompiler``."""
+
 import sys
 
 from eahandbookcompiler.main import cli

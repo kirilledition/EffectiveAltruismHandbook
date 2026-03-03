@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
 
 import click
@@ -12,6 +14,9 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Comment, Tag
 from markdownify import MarkdownConverter
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
@@ -193,7 +198,7 @@ def extract_author_json_ld(soup: BeautifulSoup) -> str:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(script.string or "")
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):  # fmt: skip
             continue
         if not isinstance(data, dict):
             continue
@@ -268,7 +273,7 @@ def extract_date(soup: BeautifulSoup) -> str:
                     date_str = data.get(key, "")
                     if date_str:
                         return date_str[:10]  # YYYY-MM-DD
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):  # fmt: skip
             continue
 
     for attr_name in ("article:published_time", "datePublished", "date"):
@@ -485,8 +490,50 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     return post
 
 
-import hashlib
-from pathlib import Path
+def _load_cached_post(cache_path: Path, post: Post) -> bool:
+    """Load a post from the cache file if it exists.
+
+    Args:
+        cache_path: Path to the cache JSON file.
+        post: Post object to populate with cached data.
+
+    Returns:
+        ``True`` if the post was loaded from cache, ``False`` otherwise.
+    """
+    if not cache_path.exists():
+        return False
+    try:
+        with cache_path.open(encoding="utf-8") as f:
+            data = json.load(f)
+            post.markdown = data.get("markdown", "")
+            post.author = data.get("author", "")
+            post.posted_date = data.get("posted_date", "")
+    except (json.JSONDecodeError, OSError):  # fmt: skip
+        return False
+    else:
+        return True
+
+
+def _save_post_to_cache(cache_path: Path, post: Post) -> None:
+    """Save a scraped post to the cache file.
+
+    Args:
+        cache_path: Path to the cache JSON file.
+        post: Post object with populated content fields.
+    """
+    try:
+        with cache_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "markdown": post.markdown,
+                    "author": post.author,
+                    "posted_date": post.posted_date,
+                },
+                f,
+                indent=2,
+            )
+    except OSError:
+        pass
 
 
 def scrape_all(
@@ -528,33 +575,13 @@ def scrape_all(
         if cache_dir is not None:
             url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
             cache_path = cache_dir / f"{url_hash}.json"
-            if cache_path.exists():
-                try:
-                    with open(cache_path, encoding="utf-8") as f:
-                        data = json.load(f)
-                        post.markdown = data.get("markdown", "")
-                        post.author = data.get("author", "")
-                        post.posted_date = data.get("posted_date", "")
-                    continue
-                except json.JSONDecodeError, OSError:
-                    pass
+            if _load_cached_post(cache_path, post):
+                continue
 
         scrape_post_content(post, session)
 
         if cache_dir is not None:
-            try:
-                with open(cache_path, "w", encoding="utf-8") as f:
-                    json.dump(
-                        {
-                            "markdown": post.markdown,
-                            "author": post.author,
-                            "posted_date": post.posted_date,
-                        },
-                        f,
-                        indent=2,
-                    )
-            except OSError:
-                pass
+            _save_post_to_cache(cache_path, post)
 
         time.sleep(delay)
 
