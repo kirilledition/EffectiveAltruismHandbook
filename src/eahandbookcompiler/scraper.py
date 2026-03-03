@@ -644,8 +644,7 @@ def _scrape_posts_concurrent(
     total = len(posts)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {
-            executor.submit(_process_single_post, post, make_session(), cache_dir): i
-            for i, post in enumerate(posts)
+            executor.submit(_process_single_post, post, make_session(), cache_dir): i for i, post in enumerate(posts)
         }
         for future in as_completed(future_to_index):
             idx = future_to_index[future]
