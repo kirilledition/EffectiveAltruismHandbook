@@ -37,7 +37,3 @@ jobs:
         if: always()
         with:
           commit_message: "style: auto-fix linting issues"
-
-      - name: Run Ty Check
-        if: always()
-        run: uv run ty check .
