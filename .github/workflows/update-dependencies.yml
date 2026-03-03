@@ -3,35 +3,75 @@ name: Update Dependencies
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  update-uv-dependencies:
+  update-dependencies:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: ".python-version"
-
       - name: Update uv lockfile
         run: uv lock --upgrade
+
+      - name: Update GitHub Actions versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for file in .github/workflows/*.yml; do
+            grep -oP 'uses:\s+\K\S+@v[\d.]+' "$file" | sort -u | while read -r match; do
+              full_action=$(echo "$match" | cut -d'@' -f1)
+              current_tag=$(echo "$match" | cut -d'@' -f2)
+              api_repo=$(echo "$full_action" | awk -F'/' '{print $1"/"$2}')
+
+              latest_tag=$(gh api "repos/${api_repo}/releases/latest" --jq '.tag_name' 2>/dev/null || echo "")
+              [ -z "$latest_tag" ] && continue
+
+              if echo "$current_tag" | grep -qP '^v\d+$'; then
+                new_tag=$(echo "$latest_tag" | grep -oP '^v\d+')
+              else
+                new_tag="$latest_tag"
+              fi
+
+              if [ -n "$new_tag" ] && [ "$current_tag" != "$new_tag" ]; then
+                echo "Updating ${full_action}: ${current_tag} -> ${new_tag}"
+                sed -i "s|${full_action}@${current_tag}|${full_action}@${new_tag}|g" "$file"
+              fi
+            done
+          done
+
+      - name: Update Python patch version
+        run: |
+          CURRENT=$(tr -d '[:space:]' < .python-version)
+          MINOR="${CURRENT%.*}"
+          LATEST=$(curl -s "https://endoflife.date/api/python/${MINOR}.json" \
+            | jq -r '.latest // empty' 2>/dev/null || echo "")
+          if [ -n "$LATEST" ] && [ "$LATEST" != "$CURRENT" ]; then
+            echo "Updating Python: ${CURRENT} -> ${LATEST}"
+            echo "$LATEST" > .python-version
+          fi
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(deps): update all python dependencies"
-          title: "chore(deps): update all python dependencies via uv"
+          commit-message: "chore(deps): update all dependencies"
+          title: "chore(deps): update all dependencies"
           body: |
-            This PR updates all Python dependencies to their latest compatible versions using `uv lock --upgrade`.
-            
+            This PR updates all dependencies to their latest compatible versions:
+
+            - **Python packages**: Updated via `uv lock --upgrade`
+            - **GitHub Actions**: Updated to latest versions across all workflows
+            - **Python version**: Updated `.python-version` to latest patch release
+
             This was manually triggered via the **Update Dependencies** workflow dispatch.
-          branch: "chore/update-uv-dependencies"
+          branch: "chore/update-dependencies"
           delete-branch: true
