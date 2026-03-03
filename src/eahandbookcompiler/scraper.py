@@ -636,13 +636,20 @@ def _scrape_posts_concurrent(
 ) -> None:
     """Download posts concurrently using a thread pool.
 
+    Each worker thread uses its own ``requests.Session`` because
+    ``Session`` objects are `not thread-safe
+    <https://requests.readthedocs.io/en/latest/api/#sessionapi>`_.
+    The *session* parameter is only kept for API compatibility with
+    tests that inject a mock session for sequential mode.
+
     Progress messages may appear out of order since tasks complete
     at different times.
     """
     total = len(posts)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {
-            executor.submit(_process_single_post, post, session, cache_dir): i for i, post in enumerate(posts)
+            executor.submit(_process_single_post, post, make_session(), cache_dir): i
+            for i, post in enumerate(posts)
         }
         for future in as_completed(future_to_index):
             idx = future_to_index[future]

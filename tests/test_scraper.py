@@ -223,13 +223,16 @@ class TestScrapePostContent:
 
 
 class TestScrapeAllConcurrent:
-    def test_concurrent_populates_all_posts(self):
-        session = MagicMock()
-        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
-        post_response = _make_response(SAMPLE_POST_HTML)
-        session.get.side_effect = [index_response, post_response, post_response, post_response]
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_concurrent_populates_all_posts(self, mock_make_session):
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
 
-        handbook = scrape_all(session=session, delay=0, max_workers=2)
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        handbook = scrape_all(session=index_session, delay=0, max_workers=2)
 
         assert len(handbook.posts) == 3
         for post in handbook.posts:
@@ -248,33 +251,38 @@ class TestScrapeAllConcurrent:
         for post in handbook.posts:
             assert post.markdown
 
-    def test_concurrent_with_cache(self, tmp_path):
-        session = MagicMock()
-        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
-        post_response = _make_response(SAMPLE_POST_HTML)
-        session.get.side_effect = [index_response, post_response, post_response, post_response]
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_concurrent_with_cache(self, mock_make_session, tmp_path):
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
 
-        handbook = scrape_all(session=session, delay=0, max_workers=2, cache_dir=tmp_path)
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        handbook = scrape_all(session=index_session, delay=0, max_workers=2, cache_dir=tmp_path)
 
         assert len(handbook.posts) == 3
         cache_files = list(tmp_path.glob("*.json"))
         assert len(cache_files) == 3
 
-    def test_concurrent_propagates_errors(self):
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_concurrent_propagates_errors(self, mock_make_session):
         import requests as req
 
-        session = MagicMock()
-        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
 
         error_response = MagicMock()
         error_response.is_redirect = False
         error_response.raise_for_status.side_effect = req.exceptions.HTTPError("500 Server Error")
 
-        post_response = _make_response(SAMPLE_POST_HTML)
-        session.get.side_effect = [index_response, error_response, post_response, post_response]
+        error_session = MagicMock()
+        error_session.get.return_value = error_response
+        mock_make_session.return_value = error_session
 
         with pytest.raises(req.exceptions.HTTPError):
-            scrape_all(session=session, delay=0, max_workers=2)
+            scrape_all(session=index_session, delay=0, max_workers=2)
 
 
 class TestExtractAuthor:
