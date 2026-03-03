@@ -47,6 +47,14 @@ def cli() -> None:
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
+@click.option(
+    "--workers",
+    "-w",
+    default=4,
+    show_default=True,
+    type=click.IntRange(min=1),
+    help="Number of concurrent download threads.",
+)
 def build(
     output_dir: str,
     delay: float,
@@ -54,6 +62,7 @@ def build(
     commit_hash: str,
     repo_url: str,
     cache_dir: str,
+    workers: int,
 ) -> None:
     """Scrape the handbook and build markdown, epub, and pdf.
 
@@ -64,11 +73,12 @@ def build(
         commit_hash: Git commit hash to embed in the metadata page.
         repo_url: Repository URL to embed in the metadata page.
         cache_dir: Directory to cache downloaded posts.
+        workers: Number of concurrent download threads.
 
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir), max_workers=workers)
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
@@ -108,6 +118,14 @@ def build(
     type=click.Path(file_okay=False, writable=True),
     help="Directory to cache downloaded posts.",
 )
+@click.option(
+    "--workers",
+    "-w",
+    default=4,
+    show_default=True,
+    type=click.IntRange(min=1),
+    help="Number of concurrent download threads.",
+)
 def scrape(
     output_dir: str,
     delay: float,
@@ -115,6 +133,7 @@ def scrape(
     commit_hash: str,
     repo_url: str,
     cache_dir: str,
+    workers: int,
 ) -> None:
     """Scrape the handbook and write only the combined markdown file.
 
@@ -125,11 +144,12 @@ def scrape(
         commit_hash: Git commit hash to embed in the metadata page.
         repo_url: Repository URL to embed in the metadata page.
         cache_dir: Directory to cache downloaded posts.
+        workers: Number of concurrent download threads.
 
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir))
+    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir), max_workers=workers)
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")

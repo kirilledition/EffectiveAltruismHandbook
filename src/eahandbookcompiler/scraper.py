@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
@@ -536,19 +537,50 @@ def _save_post_to_cache(cache_path: Path, post: Post) -> None:
         pass
 
 
+def _process_single_post(
+    post: Post,
+    session: requests.Session,
+    cache_dir: Path | None,
+) -> None:
+    """Fetch and populate a single post, using cache when available.
+
+    Args:
+        post: Post stub to populate with content.
+        session: Active requests session.
+        cache_dir: Optional cache directory for post data.
+    """
+    if cache_dir is not None:
+        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+        cache_path = cache_dir / f"{url_hash}.json"
+        if _load_cached_post(cache_path, post):
+            return
+
+    scrape_post_content(post, session)
+
+    if cache_dir is not None:
+        _save_post_to_cache(cache_path, post)
+
+
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
     verbose: bool = False,
     cache_dir: Path | None = None,
+    max_workers: int = 1,
 ) -> Handbook:
     """Scrape the full handbook: index + all post contents.
 
+    When *max_workers* is greater than 1 posts are downloaded
+    concurrently using a thread pool, which can significantly reduce
+    total scrape time.  The per-request *delay* is only applied in
+    sequential (single-worker) mode.
+
     Args:
         session: Optional requests session (useful for testing with mocks).
-        delay: Seconds to wait between requests (be polite to the server).
+        delay: Seconds to wait between requests (sequential mode only).
         verbose: Emit progress messages via ``click.echo``.
         cache_dir: Optional directory to cache downloaded posts.
+        max_workers: Number of concurrent download threads (default 1).
 
     Returns:
         A ``Handbook`` containing every post with content populated.
@@ -568,21 +600,46 @@ def scrape_all(
 
     handbook = Handbook(posts=posts)
 
-    for i, post in enumerate(handbook.posts, 1):
-        if verbose:
-            click.echo(f"  [{i}/{len(posts)}] {post.title}")
-
-        if cache_dir is not None:
-            url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
-            cache_path = cache_dir / f"{url_hash}.json"
-            if _load_cached_post(cache_path, post):
-                continue
-
-        scrape_post_content(post, session)
-
-        if cache_dir is not None:
-            _save_post_to_cache(cache_path, post)
-
-        time.sleep(delay)
+    if max_workers > 1:
+        _scrape_posts_concurrent(handbook.posts, session, cache_dir, max_workers, verbose=verbose)
+    else:
+        _scrape_posts_sequential(handbook.posts, session, cache_dir, delay, verbose=verbose)
 
     return handbook
+
+
+def _scrape_posts_sequential(
+    posts: list[Post],
+    session: requests.Session,
+    cache_dir: Path | None,
+    delay: float,
+    *,
+    verbose: bool = False,
+) -> None:
+    """Download posts one at a time with a polite delay."""
+    for i, post in enumerate(posts, 1):
+        if verbose:
+            click.echo(f"  [{i}/{len(posts)}] {post.title}")
+        _process_single_post(post, session, cache_dir)
+        time.sleep(delay)
+
+
+def _scrape_posts_concurrent(
+    posts: list[Post],
+    session: requests.Session,
+    cache_dir: Path | None,
+    max_workers: int,
+    *,
+    verbose: bool = False,
+) -> None:
+    """Download posts concurrently using a thread pool."""
+    total = len(posts)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_index = {
+            executor.submit(_process_single_post, post, session, cache_dir): i for i, post in enumerate(posts)
+        }
+        for future in as_completed(future_to_index):
+            idx = future_to_index[future]
+            future.result()  # propagate exceptions
+            if verbose:
+                click.echo(f"  [{idx + 1}/{total}] {posts[idx].title}")
