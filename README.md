@@ -2,7 +2,7 @@
 
 [![Test Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml)
 [![Lint Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml)
-![Coverage](coverage-badge.svg)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kirilledition/GIST_ID/raw/coverage.json)
 
 
 A [uv](https://docs.astral.sh/uv/)-based Python tool that scrapes posts from the
@@ -105,3 +105,16 @@ The workflow in `.github/workflows/build.yml`:
 
 The workflow is also triggered weekly via a `schedule` cron (Sundays 00:00 UTC)
 so the ebook always reflects the latest handbook content.
+
+### Coverage badge setup
+
+The coverage badge is rendered dynamically via [shields.io](https://shields.io)
+and backed by a GitHub Gist (no files are committed to the repo). One-time setup:
+
+1. Create a **public** GitHub Gist (any filename, e.g. `coverage.json`).
+2. Copy the **Gist ID** from its URL.
+3. Create a GitHub **Personal Access Token** with the `gist` scope.
+4. In the repository, add:
+   - **Secret** `GIST_SECRET` — the PAT created above.
+   - **Variable** `COVERAGE_GIST_ID` — the Gist ID.
+5. Update the badge URL in this README, replacing `GIST_ID` with your Gist ID.
