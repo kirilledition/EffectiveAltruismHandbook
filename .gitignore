@@ -47,6 +47,7 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py.cover
+coverage-badge.svg
 .hypothesis/
 .pytest_cache/
 cover/

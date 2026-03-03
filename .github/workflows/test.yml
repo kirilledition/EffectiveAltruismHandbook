@@ -11,12 +11,8 @@ jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -29,13 +25,31 @@ jobs:
       - name: Run Pytest with Coverage
         run: uv run pytest --cov=eahandbookcompiler --cov-report=xml --cov-report=term
 
-      - name: Generate Coverage Badge
-        if: always()
-        run: uv run genbadge coverage -i coverage.xml
+      - name: Extract Coverage Percentage
+        if: github.ref == 'refs/heads/main'
+        id: coverage
+        run: |
+          COVERAGE=$(python -c "
+          import xml.etree.ElementTree as ET, sys, pathlib
+          path = pathlib.Path('coverage.xml')
+          if not path.exists():
+              print('0', end='')
+              sys.exit()
+          tree = ET.parse(path)
+          rate = float(tree.getroot().attrib.get('line-rate', '0'))
+          print(f'{rate * 100:.1f}', end='')
+          ")
+          echo "percentage=$COVERAGE" >> "$GITHUB_OUTPUT"
 
-      - name: Commit Coverage Badge
-        uses: stefanzweifel/git-auto-commit-action@v7
-        if: always()
+      - name: Update Coverage Badge
+        if: github.ref == 'refs/heads/main'
+        uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          commit_message: "chore: update coverage badge"
-          file_pattern: "coverage.xml coverage-badge.svg"
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: coverage.json
+          label: coverage
+          message: "${{ steps.coverage.outputs.percentage }}%"
+          valColorRange: ${{ steps.coverage.outputs.percentage }}
+          minColorRange: 50
+          maxColorRange: 90
