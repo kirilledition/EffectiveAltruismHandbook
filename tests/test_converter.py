@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from eahandbookcompiler.converter import demote_headings, require_pandoc
+from eahandbookcompiler.converter import PDF_CSS, demote_headings, require_pandoc
 
 
 class TestDemoteHeadingsCodeBlocks:
@@ -77,3 +77,14 @@ class TestRequirePandocErrorPath:
         with pytest.raises(RuntimeError, match="pandoc is not installed"):
             require_pandoc()
         mock_which.assert_called_once_with("pandoc")
+
+
+class TestPdfCss:
+    def test_contains_liberation_sans(self):
+        assert '"Liberation Sans"' in PDF_CSS
+
+    def test_contains_small_margins(self):
+        assert "margin: 1.5cm" in PDF_CSS
+
+    def test_contains_small_font_size(self):
+        assert "font-size: 10pt" in PDF_CSS
