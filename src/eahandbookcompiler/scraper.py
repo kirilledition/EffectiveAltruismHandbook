@@ -632,7 +632,11 @@ def _scrape_posts_concurrent(
     *,
     verbose: bool = False,
 ) -> None:
-    """Download posts concurrently using a thread pool."""
+    """Download posts concurrently using a thread pool.
+
+    Progress messages may appear out of order since tasks complete
+    at different times.
+    """
     total = len(posts)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {
