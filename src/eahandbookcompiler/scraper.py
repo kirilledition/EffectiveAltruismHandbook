@@ -617,11 +617,13 @@ def _scrape_posts_sequential(
     verbose: bool = False,
 ) -> None:
     """Download posts one at a time with a polite delay."""
+    total = len(posts)
     for i, post in enumerate(posts, 1):
         if verbose:
-            click.echo(f"  [{i}/{len(posts)}] {post.title}")
+            click.echo(f"  [{i}/{total}] {post.title}")
         _process_single_post(post, session, cache_dir)
-        time.sleep(delay)
+        if i < total:
+            time.sleep(delay)
 
 
 def _scrape_posts_concurrent(
