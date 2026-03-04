@@ -84,7 +84,26 @@ class TestPdfCss:
         assert '"Liberation Sans"' in PDF_CSS
 
     def test_contains_small_margins(self):
-        assert "margin: 1.5cm" in PDF_CSS
+        assert "margin: 1.0cm" in PDF_CSS
 
     def test_contains_small_font_size(self):
         assert "font-size: 10pt" in PDF_CSS
+
+    def test_contains_img_max_width(self):
+        assert "max-width: 100%" in PDF_CSS
+
+    def test_contains_img_height_auto(self):
+        assert "height: auto" in PDF_CSS
+
+    def test_contains_h1_page_break(self):
+        assert "page-break-before: always" in PDF_CSS
+
+
+class TestDemoteHeadingsCap:
+    def test_caps_at_h6(self):
+        result = demote_headings("##### Heading", levels=2)
+        assert result == "###### Heading"
+
+    def test_h6_stays_at_h6(self):
+        result = demote_headings("###### Heading", levels=2)
+        assert result == "###### Heading"

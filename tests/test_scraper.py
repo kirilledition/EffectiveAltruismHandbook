@@ -442,9 +442,60 @@ class TestHandbookToMarkdown:
         assert "Alice" in content
         assert "2023-01-15" in content
 
+    def test_includes_title_page(self, tmp_path):
+        handbook = Handbook(
+            posts=[Post(title="T", url="u", section="S", markdown="m")],
+        )
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
+
+        assert "# The Effective Altruism Handbook" in content
+
+    def test_includes_toc_directive(self, tmp_path):
+        handbook = Handbook(
+            posts=[Post(title="T", url="u", section="S", markdown="m")],
+        )
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
+
+        assert "\\tableofcontents" in content
+
+    def test_about_before_toc(self, tmp_path):
+        handbook = Handbook(
+            posts=[Post(title="T", url="u", section="S", author="A", posted_date="2023-01-01", markdown="m")],
+        )
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
+
+        about_pos = content.index("# About This Book")
+        toc_pos = content.index("\\tableofcontents")
+        assert about_pos < toc_pos
+
+    def test_includes_author_byline(self, tmp_path):
+        handbook = Handbook(
+            posts=[
+                Post(
+                    title="My Post",
+                    url="u",
+                    section="S",
+                    author="Bob",
+                    posted_date="2024-05-10",
+                    markdown="content",
+                ),
+            ],
+        )
+        output_path = tmp_path / "output.markdown"
+        handbook_to_markdown(handbook, output_path)
+        content = output_path.read_text()
+
+        assert "*By Bob on 2024-05-10*" in content
+
 
 class TestBuildMetadataPage:
-    def test_authors_sorted_two_columns(self):
+    def test_authors_sorted_comma_separated(self):
         handbook = Handbook(
             posts=[
                 Post(
@@ -475,13 +526,8 @@ class TestBuildMetadataPage:
         assert "# About This Book" in page
         assert "2023-01-01" in page
         assert "2023-06-01" in page
-        # Authors in alphabetical order
-        alice_pos = page.index("Alice")
-        bob_pos = page.index("Bob")
-        zara_pos = page.index("Zara")
-        assert alice_pos < bob_pos < zara_pos
-        # Table format
-        assert "|" in page
+        # Authors in alphabetical order, comma-separated
+        assert "Alice, Bob, Zara" in page
 
     def test_no_authors_no_dates(self):
         handbook = Handbook(
@@ -536,7 +582,6 @@ class TestConvertToEpub:
                 "--from=markdown",
                 "--to=epub3",
                 f"--output={test_output_path}",
-                "--toc",
                 "--toc-depth=2",
                 "--split-level=2",
                 f"--css={test_output_path.parent / 'epub.css'}",
@@ -647,3 +692,44 @@ class TestFetchRedirects:
             match="Exceeded maximum redirects",
         ):
             fetch(session, "https://forum.effectivealtruism.org/post")
+
+
+class TestCcLicenseFilter:
+    def test_removes_creative_commons_footer(self):
+        html = "<div><p>Main content.</p><p>Licensed under Creative Commons Attribution 4.0.</p></div>"
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+
+        assert "Main content" in markdown
+        assert "Creative Commons" not in markdown
+
+    def test_removes_cc_by_footer(self):
+        html = "<div><p>Main content.</p><p>CC BY 4.0 International License</p></div>"
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+
+        assert "Main content" in markdown
+        assert "CC BY" not in markdown
+
+    def test_preserves_non_cc_license(self):
+        html = "<div><p>Main content.</p><p>Licensed under the MIT License.</p></div>"
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+
+        assert "Main content" in markdown
+        assert "MIT License" in markdown
+
+
+class TestCleanAuthorName:
+    def test_strips_html_tags(self):
+        html = '<html><head><meta name="author" content="<b>John Doe</b>"></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == "John Doe"
+
+    def test_collapses_whitespace(self):
+        html = '<html><head><meta name="author" content="  John   Doe  "></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == "John Doe"
