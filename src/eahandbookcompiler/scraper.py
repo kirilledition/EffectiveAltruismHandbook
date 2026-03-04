@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -140,7 +141,9 @@ def html_to_markdown(html_element: Tag) -> str:
     """Convert a BeautifulSoup element to clean markdown.
 
     Navigation, footer, script, style, and comment sections are stripped
-    before conversion to avoid including non-content material.
+    before conversion to avoid including non-content material.  Standard
+    Creative Commons license footers are also removed, while non-CC
+    license notices are preserved.
 
     Args:
         html_element: BeautifulSoup ``Tag`` containing the HTML to convert.
@@ -157,6 +160,8 @@ def html_to_markdown(html_element: Tag) -> str:
         class_=lambda c: c and "comments" in c.lower(),
     ):
         element.decompose()
+    # Remove standard Creative Commons license footers
+    _strip_cc_license_footers(html_element)
     # ⚡ Bolt Optimization: Use MarkdownConverter.convert_soup() directly
     # Passing a BeautifulSoup element to the markdownify() helper function
     # unnecessarily serializes it to a string and re-parses it.
@@ -164,11 +169,30 @@ def html_to_markdown(html_element: Tag) -> str:
     return MarkdownConverter(heading_style="ATX").convert_soup(html_element).strip()
 
 
+def _strip_cc_license_footers(element: Tag) -> None:
+    """Remove elements containing standard Creative Commons license text.
+
+    Searches from the bottom of the tree for elements whose text
+    mentions "Creative Commons" or "CC BY".  If found, those elements
+    are decomposed.  Elements that mention "License" but lack CC
+    keywords are left untouched so non-standard licenses remain.
+
+    Args:
+        element: BeautifulSoup ``Tag`` to filter in place.
+    """
+    cc_keywords = ("creative commons", "cc by")
+    for child in reversed(element.find_all(["p", "div", "span", "a", "blockquote"])):
+        text = child.get_text(strip=True).lower()
+        if any(kw in text for kw in cc_keywords):
+            child.decompose()
+
+
 def extract_author(soup: BeautifulSoup) -> str:
     """Extract the author name from a post page, trying several strategies.
 
     Strategies tried in order: JSON-LD structured data, ``<meta>`` author
-    tag, common byline class patterns.
+    tag, common byline class patterns.  The result is stripped of any
+    residual HTML tags and normalised whitespace.
 
     Args:
         soup: Parsed post page.
@@ -177,14 +201,27 @@ def extract_author(soup: BeautifulSoup) -> str:
         Author name, or an empty string if none could be found.
     """
     name = extract_author_json_ld(soup)
-    if name:
-        return name
+    if not name:
+        name = extract_author_meta(soup)
+    if not name:
+        name = extract_author_byline(soup)
 
-    name = extract_author_meta(soup)
-    if name:
-        return name
+    return _clean_author_name(name)
 
-    return extract_author_byline(soup)
+
+def _clean_author_name(name: str) -> str:
+    """Strip residual HTML tags and collapse whitespace from an author name.
+
+    Args:
+        name: Raw author name string.
+
+    Returns:
+        Cleaned author name.
+    """
+    # Remove any residual HTML tags
+    cleaned = re.sub(r"<[^>]+>", "", name)
+    # Collapse whitespace and strip
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def extract_author_json_ld(soup: BeautifulSoup) -> str:

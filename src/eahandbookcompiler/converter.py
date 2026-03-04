@@ -13,11 +13,18 @@ if TYPE_CHECKING:
 
 PDF_CSS = """\
 @page {
-    margin: 1.5cm;
+    margin: 1.0cm;
 }
 body {
     font-family: "Liberation Sans", sans-serif;
     font-size: 10pt;
+}
+img {
+    max-width: 100%;
+    height: auto;
+}
+h1 {
+    page-break-before: always;
 }
 """
 
@@ -41,8 +48,8 @@ def build_metadata_page(
 ) -> str:
     """Build the metadata front page as a markdown string.
 
-    The page includes the date range of posts, a two-column alphabetised
-    author table, and compiler / repository attribution.
+    The page includes the date range of posts, a comma-separated
+    alphabetised author list, and compiler / repository attribution.
 
     Args:
         handbook: Handbook whose posts supply author and date information.
@@ -65,14 +72,8 @@ def build_metadata_page(
     earliest = min(dates) if dates else "unknown"
     latest = max(dates) if dates else "unknown"
 
-    # Build two-column author table
-    rows: list[str] = []
-    for i in range(0, len(sorted_authors), 2):
-        left = sorted_authors[i]
-        right = sorted_authors[i + 1] if i + 1 < len(sorted_authors) else ""
-        rows.append(f"| {left} | {right} |")
-
-    author_table = "| | |\n|---|---|\n" + "\n".join(rows) if rows else ""
+    # Build comma-separated author list
+    author_list = ", ".join(sorted_authors) if sorted_authors else ""
 
     # Build info
     commit_part = f" with git commit `{commit_hash}`" if commit_hash else ""
@@ -82,8 +83,8 @@ def build_metadata_page(
         "# About This Book\n\n",
         f"This book contains blog posts written from {earliest} to {latest} by:\n\n",
     ]
-    if author_table:
-        parts.append(f"{author_table}\n\n")
+    if author_list:
+        parts.append(f"{author_list}\n\n")
     parts.append("---\n\n")
     parts.append(
         f"*This ebook was compiled by Kirill Denisov using "
@@ -120,8 +121,14 @@ def handbook_to_markdown(
 
     lines: list[str] = [PANDOC_METADATA]
 
+    # Insert title page
+    lines.append("# The Effective Altruism Handbook\n\n")
+
     # Insert metadata front page
     lines.append(build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
+
+    # Insert table of contents
+    lines.append("\\tableofcontents\n\n")
 
     current_section: str | None = None
 
@@ -131,6 +138,14 @@ def handbook_to_markdown(
             lines.append(f"# {current_section}\n\n")
 
         lines.append(f"## {post.title}\n\n")
+
+        # Add author and date byline
+        if post.author and post.posted_date:
+            lines.append(f"*By {post.author} on {post.posted_date}*\n\n")
+        elif post.author:
+            lines.append(f"*By {post.author}*\n\n")
+        elif post.posted_date:
+            lines.append(f"*{post.posted_date}*\n\n")
 
         if post.markdown:
             # Demote headings inside the post body so they nest under ## title
@@ -176,8 +191,10 @@ def demote_headings(text: str, levels: int = 2) -> str:
             result.append(line)
             continue
 
-        if not in_code_block and re.match(r"^#+ ", line):
-            result.append("#" * levels + line)
+        if not in_code_block and re.match(r"^(#+) ", line):
+            existing_hashes = re.match(r"^(#+)", line).group(1)
+            new_level = min(len(existing_hashes) + levels, 6)
+            result.append("#" * new_level + line[len(existing_hashes) :])
         else:
             result.append(line)
 
@@ -230,7 +247,6 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
             "--from=markdown",
             "--to=epub3",
             f"--output={output_path}",
-            "--toc",
             "--toc-depth=2",
             "--split-level=2",
             f"--css={dummy_css}",
@@ -270,7 +286,6 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         "--to=pdf",
         f"--pdf-engine={pdf_engine}",
         f"--output={output_path}",
-        "--toc",
         "--toc-depth=2",
     ]
 
