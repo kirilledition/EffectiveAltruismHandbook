@@ -11,6 +11,16 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from eahandbookcompiler.scraper import Handbook
 
+PDF_CSS = """\
+@page {
+    margin: 1.5cm;
+}
+body {
+    font-family: "Liberation Sans", sans-serif;
+    font-size: 10pt;
+}
+"""
+
 PANDOC_METADATA = """\
 ---
 title: "The Effective Altruism Handbook"
@@ -253,19 +263,23 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
 
     pdf_engine = "weasyprint" if shutil.which("weasyprint") else "pdflatex"
 
-    subprocess.run(
-        [
-            pandoc,
-            str(markdown_path),
-            "--from=markdown",
-            "--to=pdf",
-            f"--pdf-engine={pdf_engine}",
-            f"--output={output_path}",
-            "--toc",
-            "--toc-depth=2",
-        ],
-        check=True,
-    )
+    cmd = [
+        pandoc,
+        str(markdown_path),
+        "--from=markdown",
+        "--to=pdf",
+        f"--pdf-engine={pdf_engine}",
+        f"--output={output_path}",
+        "--toc",
+        "--toc-depth=2",
+    ]
+
+    if pdf_engine == "weasyprint":
+        pdf_css = output_path.parent / "pdf.css"
+        pdf_css.write_text(PDF_CSS, encoding="utf-8")
+        cmd.append(f"--css={pdf_css}")
+
+    subprocess.run(cmd, check=True)
     return output_path
 
 

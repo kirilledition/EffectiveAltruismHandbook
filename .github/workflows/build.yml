@@ -107,10 +107,10 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Install pandoc and weasyprint
+      - name: Install pandoc, weasyprint, and Liberation Sans font
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends pandoc weasyprint
+          sudo apt-get install -y --no-install-recommends pandoc weasyprint fonts-liberation
 
       - name: Download markdown artifact
         uses: actions/download-artifact@v8
