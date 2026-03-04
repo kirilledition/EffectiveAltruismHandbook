@@ -191,10 +191,14 @@ def demote_headings(text: str, levels: int = 2) -> str:
             result.append(line)
             continue
 
-        if not in_code_block and re.match(r"^(#+) ", line):
-            existing_hashes = re.match(r"^(#+)", line).group(1)
-            new_level = min(len(existing_hashes) + levels, 6)
-            result.append("#" * new_level + line[len(existing_hashes) :])
+        if not in_code_block:
+            heading_match = re.match(r"^(#+) ", line)
+            if heading_match:
+                existing_hashes = heading_match.group(1)
+                new_level = min(len(existing_hashes) + levels, 6)
+                result.append("#" * new_level + line[len(existing_hashes) :])
+            else:
+                result.append(line)
         else:
             result.append(line)
 
