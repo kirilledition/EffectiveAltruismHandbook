@@ -300,6 +300,36 @@ class TestExtractAuthor:
         soup = BeautifulSoup(html, "lxml")
         assert extract_author(soup) == "Toby Ord"
 
+    def test_byline_div_not_matched(self):
+        """A byline div wrapping author, date, and read time must not be matched."""
+        html = (
+            "<html><body>"
+            '<div class="PostsPagePostHeader-byline">'
+            '<a class="UsersName-root">Jane Smith</a>'
+            "<span>May 10, 2024</span>"
+            "<span>5 min read</span>"
+            "</div>"
+            "</body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == "Jane Smith"
+
+    def test_author_in_anchor_tag(self):
+        html = '<html><body><a class="author-name">Alice</a></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == "Alice"
+
+    def test_author_in_span_tag(self):
+        html = '<html><body><span class="author">Bob</span></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == "Bob"
+
+    def test_author_div_ignored(self):
+        """A div with class 'author' should not be matched."""
+        html = '<html><body><div class="author">Eve</div></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author(soup) == ""
+
     def test_no_author_returns_empty(self):
         html = "<html><body><p>Hello</p></body></html>"
         soup = BeautifulSoup(html, "lxml")

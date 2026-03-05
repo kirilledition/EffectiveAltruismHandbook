@@ -268,8 +268,12 @@ def extract_author_meta(soup: BeautifulSoup) -> str:
 def extract_author_byline(soup: BeautifulSoup) -> str:
     """Try to extract author from common byline class patterns.
 
-    Searches for ``<a>``, ``<span>``, or ``<div>`` elements whose CSS
-    class contains ``author``, ``byline``, ``username``, or ``UsersName``.
+    Searches for ``<a>`` or ``<span>`` elements whose CSS class contains
+    ``author``, ``username``, or ``UsersName``.  The ``byline`` pattern
+    and ``<div>`` tags are intentionally excluded because on the EA Forum
+    the byline ``<div>`` is a large container holding the author name,
+    publication date, and reading time estimate; using ``get_text`` on it
+    would concatenate all that metadata into a single string.
 
     Args:
         soup: Parsed page.
@@ -277,11 +281,11 @@ def extract_author_byline(soup: BeautifulSoup) -> str:
     Returns:
         Author name, or an empty string if not found.
     """
-    for class_pattern in ("author", "byline", "username", "UsersName"):
+    for class_pattern in ("author", "username", "UsersName"):
         pattern_lower = class_pattern.lower()
         tag = soup.find(
             lambda t, p=pattern_lower: (
-                t.name in ("a", "span", "div") and t.get("class") and any(p in c.lower() for c in t["class"])
+                t.name in ("a", "span") and t.get("class") and any(p in c.lower() for c in t["class"])
             ),
         )
         if tag:
