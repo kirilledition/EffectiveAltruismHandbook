@@ -1,3 +1,7 @@
 ## 2024-05-24 - [Avoid Redundant HTML Parsing in markdownify]
 **Learning:** `markdownify()` function takes an HTML string. Passing a `BeautifulSoup` element to it requires serializing the tree back into a string (`str(html_element)`), only for `markdownify` to immediately re-parse it into a new `BeautifulSoup` tree under the hood.
 **Action:** Use `MarkdownConverter(heading_style="ATX").convert_soup(html_element)` directly instead of `markdownify(str(html_element), heading_style="ATX")` to skip redundant string serialization and parsing.
+
+## 2025-03-05 - BeautifulSoup Traversal Optimization
+**Learning:** When searching for early-occurring document elements (like an author byline), replacing a sequential `soup.find()` fallback chain with a combined `soup.find_all()` or combined regex search is a severe de-optimization. `soup.find()` short-circuits traversal on the first match, whereas `find_all()` forces a full-document traversal. However, for deep elements like the main post body, combining multiple `soup.find()` class checks into a single regex search (e.g. `re.compile(r"^(postBody|post-body|PostBody)$")`) is highly effective, reducing multiple full-tree traversals to a single pass optimized internally by BeautifulSoup.
+**Action:** Always maintain `find()` short-circuiting for elements known to be early in the DOM, and only consolidate searches when multiple full document traversals are unavoidable.

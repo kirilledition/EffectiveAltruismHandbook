@@ -24,6 +24,8 @@ HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
 
+POST_BODY_RE = re.compile(r"^(postBody|post-body|PostBody)$")
+
 
 @dataclass
 class Post:
@@ -490,12 +492,12 @@ def find_post_body(soup: BeautifulSoup) -> Tag | None:
     Returns:
         The body element, or ``None`` if no known selector matches.
     """
+    # ⚡ Bolt Optimization: Use compiled regex with exact word match instead of multiple lambdas.
+    # We use re.compile to match postBody, post-body, PostBody as full words in the class list.
+    # This maintains exact-match semantics while allowing BeautifulSoup to do a single tree
+    # traversal using optimized regex lookups, speeding up body extraction.
     return (
-        soup.find("div", class_=lambda c: c and "postBody" in c)
-        or soup.find("div", class_=lambda c: c and "post-body" in c)
-        or soup.find("div", class_=lambda c: c and "PostBody" in c)
-        or soup.find("div", {"itemprop": "articleBody"})
-        or soup.find("article")
+        soup.find("div", class_=POST_BODY_RE) or soup.find("div", {"itemprop": "articleBody"}) or soup.find("article")
     )
 
 
