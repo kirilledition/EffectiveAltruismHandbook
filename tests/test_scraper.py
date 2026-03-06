@@ -571,10 +571,6 @@ class TestBuildMetadataPage:
 
 class TestHtmlToMarkdown:
     def test_sanitizes_href_and_src_attributes(self):
-        from bs4 import BeautifulSoup
-
-        from eahandbookcompiler.scraper import html_to_markdown
-
         html = (
             '<div><a href="javascript:alert(1)">Click me</a>'
             '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" /></div>'
