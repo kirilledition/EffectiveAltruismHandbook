@@ -884,7 +884,7 @@ class TestExtractDateJsonLd:
     def test_json_ld_invalid_json_skipped(self):
         html = (
             '<html><head><script type="application/ld+json">bad json</script></head>'
-            "<body><time datetime=\"2021-01-01T00:00:00Z\">Jan 1</time></body></html>"
+            '<body><time datetime="2021-01-01T00:00:00Z">Jan 1</time></body></html>'
         )
         soup = BeautifulSoup(html, "lxml")
         assert extract_date(soup) == "2021-01-01"
