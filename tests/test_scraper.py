@@ -570,6 +570,23 @@ class TestBuildMetadataPage:
 
 
 class TestHtmlToMarkdown:
+    def test_sanitizes_href_and_src_attributes(self):
+        from bs4 import BeautifulSoup
+
+        from eahandbookcompiler.scraper import html_to_markdown
+
+        html = (
+            '<div><a href="javascript:alert(1)">Click me</a>'
+            '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" /></div>'
+        )
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+
+        assert "javascript:alert(1)" not in markdown
+        assert "data:image/gif;base64" not in markdown
+        assert "Click me" in markdown
+
     def test_preserves_links(self):
 
         html = '<div><p>Read <a href="https://example.com">this study</a>.</p></div>'
