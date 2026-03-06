@@ -25,6 +25,8 @@ BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
 
 POST_BODY_RE = re.compile(r"^(postBody|post-body|PostBody)$")
+HTML_TAG_RE = re.compile(r"<[^>]+>")
+WHITESPACE_RE = re.compile(r"\s+")
 
 
 @dataclass
@@ -228,9 +230,9 @@ def _clean_author_name(name: str) -> str:
         Cleaned author name.
     """
     # Remove any residual HTML tags
-    cleaned = re.sub(r"<[^>]+>", "", name)
+    cleaned = HTML_TAG_RE.sub("", name)
     # Collapse whitespace and strip
-    return re.sub(r"\s+", " ", cleaned).strip()
+    return WHITESPACE_RE.sub(" ", cleaned).strip()
 
 
 def extract_author_json_ld(soup: BeautifulSoup) -> str:

@@ -8,6 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+CODE_BLOCK_RE = re.compile(r"^(```|~~~)")
+HEADING_RE = re.compile(r"^(#+) ")
+
 if TYPE_CHECKING:
     from eahandbookcompiler.scraper import Handbook
 
@@ -127,9 +130,6 @@ def handbook_to_markdown(
     # Insert metadata front page
     lines.append(build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
 
-    # Insert table of contents
-    lines.append("\\tableofcontents\n\n")
-
     current_section: str | None = None
 
     for post in handbook.posts:
@@ -179,7 +179,7 @@ def demote_headings(text: str, levels: int = 2) -> str:
 
     for line in text.splitlines():
         # Check if we are toggling a code block
-        match = re.match(r"^(```|~~~)", line.strip())
+        match = CODE_BLOCK_RE.match(line.strip())
         if match:
             marker = match.group(1)
             if not in_code_block:
@@ -192,7 +192,7 @@ def demote_headings(text: str, levels: int = 2) -> str:
             continue
 
         if not in_code_block:
-            heading_match = re.match(r"^(#+) ", line)
+            heading_match = HEADING_RE.match(line)
             if heading_match:
                 existing_hashes = heading_match.group(1)
                 new_level = min(len(existing_hashes) + levels, 6)
@@ -251,6 +251,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
             "--from=markdown",
             "--to=epub3",
             f"--output={output_path}",
+            "--toc",
             "--toc-depth=2",
             "--split-level=2",
             f"--css={dummy_css}",
@@ -290,6 +291,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         "--to=pdf",
         f"--pdf-engine={pdf_engine}",
         f"--output={output_path}",
+        "--toc",
         "--toc-depth=2",
     ]
 

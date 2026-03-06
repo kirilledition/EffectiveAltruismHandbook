@@ -1,6 +1,6 @@
 # EffectiveAltruismHandbook
 
-[![Test Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml)
+[![Build Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/build.yml)
 [![Lint Status](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml/badge.svg)](https://github.com/kirilledition/EffectiveAltruismHandbook/actions/workflows/lint.yml)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kirilledition/GIST_ID/raw/coverage.json)
 

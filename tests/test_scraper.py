@@ -482,7 +482,7 @@ class TestHandbookToMarkdown:
 
         assert "# The Effective Altruism Handbook" in content
 
-    def test_includes_toc_directive(self, tmp_path):
+    def test_no_tableofcontents_directive(self, tmp_path):
         handbook = Handbook(
             posts=[Post(title="T", url="u", section="S", markdown="m")],
         )
@@ -490,9 +490,9 @@ class TestHandbookToMarkdown:
         handbook_to_markdown(handbook, output_path)
         content = output_path.read_text()
 
-        assert "\\tableofcontents" in content
+        assert "\\tableofcontents" not in content
 
-    def test_about_before_toc(self, tmp_path):
+    def test_about_before_sections(self, tmp_path):
         handbook = Handbook(
             posts=[Post(title="T", url="u", section="S", author="A", posted_date="2023-01-01", markdown="m")],
         )
@@ -501,8 +501,8 @@ class TestHandbookToMarkdown:
         content = output_path.read_text()
 
         about_pos = content.index("# About This Book")
-        toc_pos = content.index("\\tableofcontents")
-        assert about_pos < toc_pos
+        section_pos = content.index("# S")
+        assert about_pos < section_pos
 
     def test_includes_author_byline(self, tmp_path):
         handbook = Handbook(
@@ -625,6 +625,7 @@ class TestConvertToEpub:
                 "--from=markdown",
                 "--to=epub3",
                 f"--output={test_output_path}",
+                "--toc",
                 "--toc-depth=2",
                 "--split-level=2",
                 f"--css={test_output_path.parent / 'epub.css'}",
