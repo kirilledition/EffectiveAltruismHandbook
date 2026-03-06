@@ -164,6 +164,13 @@ def html_to_markdown(html_element: Tag) -> str:
         element.decompose()
     # Remove standard Creative Commons license footers
     _strip_cc_license_footers(html_element)
+    # Security Enhancement: Sanitize 'href' and 'src' to prevent XSS persistence in PDF/EPUB.
+    for element in html_element.find_all(["a", "img", "source", "object", "iframe", "embed"]):
+        for attr in ("href", "src"):
+            val = element.get(attr)
+            if val and isinstance(val, str) and val.lower().strip().startswith(("javascript:", "data:")):
+                del element[attr]
+
     # ⚡ Bolt Optimization: Use MarkdownConverter.convert_soup() directly
     # Passing a BeautifulSoup element to the markdownify() helper function
     # unnecessarily serializes it to a string and re-parses it.
