@@ -787,7 +787,7 @@ class TestMakeSession:
 
 
 class TestFetchRedirectMissingLocation:
-    def test_redirect_without_location_breaks(self):
+    def test_redirect_without_location_returns_fallback(self):
         from eahandbookcompiler.scraper import fetch
 
         session = MagicMock()
@@ -911,8 +911,8 @@ class TestFindLargestContentDivision:
         html = "<html><body><p>No divs here</p></body></html>"
         soup = BeautifulSoup(html, "lxml")
         result = find_largest_content_division(soup)
-        # body is wrapped in html>body which is a div-less tree; lxml adds html/body tags
-        # The function looks for "div" elements specifically
+        # lxml wraps content in html/body tags. Since the function specifically
+        # searches for div elements and none exist in the original HTML, it returns None.
         assert result is None
 
 
