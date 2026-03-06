@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from eahandbookcompiler.converter import PDF_CSS, demote_headings, require_pandoc
+from eahandbookcompiler.scraper import Handbook, Post
 
 
 class TestDemoteHeadingsCodeBlocks:
@@ -107,3 +109,49 @@ class TestDemoteHeadingsCap:
     def test_h6_stays_at_h6(self):
         result = demote_headings("###### Heading", levels=2)
         assert result == "###### Heading"
+
+
+class TestBylineVariants:
+    def test_author_only_byline(self, tmp_path):
+        from eahandbookcompiler.converter import handbook_to_markdown
+
+        handbook = Handbook(
+            posts=[Post(title="P", url="u", section="S", author="Alice", posted_date="", markdown="text")],
+        )
+        output = tmp_path / "out.md"
+        handbook_to_markdown(handbook, output)
+        content = output.read_text()
+        assert "*By Alice*" in content
+
+    def test_date_only_byline(self, tmp_path):
+        from eahandbookcompiler.converter import handbook_to_markdown
+
+        handbook = Handbook(
+            posts=[Post(title="P", url="u", section="S", author="", posted_date="2024-01-01", markdown="text")],
+        )
+        output = tmp_path / "out.md"
+        handbook_to_markdown(handbook, output)
+        content = output.read_text()
+        assert "*2024-01-01*" in content
+
+
+class TestBuildAll:
+    @patch("eahandbookcompiler.converter.convert_to_pdf")
+    @patch("eahandbookcompiler.converter.convert_to_epub")
+    def test_build_all_returns_paths(self, mock_epub, mock_pdf, tmp_path):
+        from eahandbookcompiler.converter import build_all
+
+        mock_epub.return_value = tmp_path / "eahandbookcompiler.epub"
+        mock_pdf.return_value = tmp_path / "eahandbookcompiler.pdf"
+
+        handbook = Handbook(
+            posts=[Post(title="T", url="u", section="S", markdown="m")],
+        )
+        result = build_all(handbook, tmp_path, commit_hash="abc", repo_url="https://example.com")
+
+        assert "markdown" in result
+        assert "epub" in result
+        assert "pdf" in result
+        assert result["markdown"].exists()
+        mock_epub.assert_called_once()
+        mock_pdf.assert_called_once()

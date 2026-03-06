@@ -776,3 +776,391 @@ class TestCleanAuthorName:
         html = '<html><head><meta name="author" content="  John   Doe  "></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
         assert extract_author(soup) == "John Doe"
+
+
+class TestMakeSession:
+    def test_returns_session_with_user_agent(self):
+        from eahandbookcompiler.scraper import make_session
+
+        session = make_session()
+        assert "EA-Handbook-Bot" in session.headers["User-Agent"]
+
+
+class TestFetchRedirectMissingLocation:
+    def test_redirect_without_location_breaks(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {}
+        redirect_response.text = "<html><body>fallback</body></html>"
+        redirect_response.raise_for_status = MagicMock()
+
+        session.get.return_value = redirect_response
+
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup is not None
+
+
+class TestHtmlToMarkdownStripping:
+    def test_removes_nav_and_footer(self):
+        html = "<div><nav>Menu</nav><p>Content</p><footer>Footer</footer></div>"
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+        assert "Content" in markdown
+        assert "Menu" not in markdown
+        assert "Footer" not in markdown
+
+    def test_removes_script_style_noscript(self):
+        html = "<div><script>alert(1)</script><style>.x{}</style><noscript>No JS</noscript><p>Text</p></div>"
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+        assert "Text" in markdown
+        assert "alert" not in markdown
+        assert ".x{}" not in markdown
+        assert "No JS" not in markdown
+
+
+class TestExtractAuthorJsonLdEdgeCases:
+    def test_invalid_json_skipped(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = '<html><head><script type="application/ld+json">not valid json</script></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == ""
+
+    def test_non_dict_data_skipped(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = '<html><head><script type="application/ld+json">[1, 2, 3]</script></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == ""
+
+    def test_string_author(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"author": "Jane Author"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == "Jane Author"
+
+    def test_dict_author_without_name(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"author": {"url": "https://example.com"}}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == ""
+
+
+class TestExtractDateJsonLd:
+    def test_json_ld_date_published(self):
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"datePublished": "2023-05-20T10:00:00Z"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2023-05-20"
+
+    def test_json_ld_date_created(self):
+        html = (
+            '<html><head><script type="application/ld+json">'
+            '{"dateCreated": "2022-11-15T08:30:00Z"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2022-11-15"
+
+    def test_json_ld_invalid_json_skipped(self):
+        html = (
+            '<html><head><script type="application/ld+json">bad json</script></head>'
+            "<body><time datetime=\"2021-01-01T00:00:00Z\">Jan 1</time></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-01-01"
+
+    def test_meta_date_published(self):
+        html = '<html><head><meta property="datePublished" content="2024-07-01T00:00:00Z"></head><body></body></html>'
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2024-07-01"
+
+
+class TestFindLargestContentDivision:
+    def test_returns_largest_div(self):
+        from eahandbookcompiler.scraper import find_largest_content_division
+
+        html = "<html><body><div>Short</div><div>This is a much longer text content area</div></body></html>"
+        soup = BeautifulSoup(html, "lxml")
+        result = find_largest_content_division(soup)
+        assert result is not None
+        assert "much longer" in result.get_text()
+
+    def test_returns_none_for_no_divs(self):
+        from eahandbookcompiler.scraper import find_largest_content_division
+
+        html = "<html><body><p>No divs here</p></body></html>"
+        soup = BeautifulSoup(html, "lxml")
+        result = find_largest_content_division(soup)
+        # body is wrapped in html>body which is a div-less tree; lxml adds html/body tags
+        # The function looks for "div" elements specifically
+        assert result is None
+
+
+class TestExtractFromReactStructure:
+    def test_extracts_posts_from_react_structure(self):
+        from eahandbookcompiler.scraper import _extract_from_react_structure
+
+        html = """
+        <div>
+            <div class="LargeSequencesItem-columns">
+                <div class="LargeSequencesItem-titleAndAuthor">
+                    <a href="/s/intro">Introduction Section</a>
+                </div>
+                <div class="LargeSequencesItem-right">
+                    <a href="/posts/abc/first-post">First Post</a>
+                    <a href="/posts/def/second-post">Second Post</a>
+                </div>
+            </div>
+        </div>
+        """
+        content = BeautifulSoup(html, "lxml").find("div")
+        assert content is not None
+        posts = _extract_from_react_structure(content)
+        assert len(posts) == 2
+        assert posts[0].title == "First Post"
+        assert posts[0].section == "Introduction Section"
+
+    def test_empty_react_structure(self):
+        from eahandbookcompiler.scraper import _extract_from_react_structure
+
+        html = "<div><p>No react items</p></div>"
+        content = BeautifulSoup(html, "lxml").find("div")
+        assert content is not None
+        posts = _extract_from_react_structure(content)
+        assert posts == []
+
+
+class TestExtractFromHeadingStructure:
+    def test_extracts_from_heading_structure(self):
+        from eahandbookcompiler.scraper import _extract_from_heading_structure
+
+        html = """
+        <div>
+            <h2>Chapter One</h2>
+            <ul><li><a href="/posts/abc/post-one">Post One</a></li></ul>
+            <h3>Chapter Two</h3>
+            <ul><li><a href="/posts/def/post-two">Post Two</a></li></ul>
+        </div>
+        """
+        content = BeautifulSoup(html, "lxml").find("div")
+        assert content is not None
+        posts = _extract_from_heading_structure(content)
+        assert len(posts) == 2
+        assert posts[0].section == "Chapter One"
+        assert posts[1].section == "Chapter Two"
+
+
+class TestExtractPostsFromContent:
+    def test_prefers_react_structure(self):
+        from eahandbookcompiler.scraper import extract_posts_from_content
+
+        html = """
+        <div>
+            <div class="LargeSequencesItem-columns">
+                <div class="LargeSequencesItem-titleAndAuthor">
+                    <a href="/s/intro">Intro</a>
+                </div>
+                <div class="LargeSequencesItem-right">
+                    <a href="/posts/abc/react-post">React Post</a>
+                </div>
+            </div>
+            <h2>Fallback</h2>
+            <ul><li><a href="/posts/def/heading-post">Heading Post</a></li></ul>
+        </div>
+        """
+        content = BeautifulSoup(html, "lxml").find("div")
+        assert content is not None
+        posts = extract_posts_from_content(content)
+        assert len(posts) == 1
+        assert posts[0].title == "React Post"
+
+    def test_falls_back_to_heading_structure(self):
+        from eahandbookcompiler.scraper import extract_posts_from_content
+
+        html = """
+        <div>
+            <h2>Section</h2>
+            <ul><li><a href="/posts/abc/heading-post">Heading Post</a></li></ul>
+        </div>
+        """
+        content = BeautifulSoup(html, "lxml").find("div")
+        assert content is not None
+        posts = extract_posts_from_content(content)
+        assert len(posts) == 1
+        assert posts[0].title == "Heading Post"
+
+
+class TestScrapeHandbookIndexContentDiv:
+    def test_uses_content_div(self):
+        html = """
+        <html><body>
+            <div class="PageContent">
+                <h2>Section</h2>
+                <ul><li><a href="/posts/abc/my-post">My Post</a></li></ul>
+            </div>
+        </body></html>
+        """
+        session = MagicMock()
+        session.get.return_value = _make_response(html)
+        posts = scrape_handbook_index(session)
+        assert len(posts) == 1
+        assert posts[0].title == "My Post"
+
+    def test_uses_large_sequences_item_body(self):
+        html = """
+        <html><body>
+            <div class="LargeSequencesItem-columns">
+                <div class="LargeSequencesItem-titleAndAuthor">
+                    <a href="/s/intro">Intro</a>
+                </div>
+                <div class="LargeSequencesItem-right">
+                    <a href="/posts/x/react-post">React Post</a>
+                </div>
+            </div>
+        </body></html>
+        """
+        session = MagicMock()
+        session.get.return_value = _make_response(html)
+        posts = scrape_handbook_index(session)
+        assert len(posts) == 1
+        assert posts[0].title == "React Post"
+
+    def test_returns_empty_when_no_content(self):
+        html = "<html></html>"
+        session = MagicMock()
+        session.get.return_value = _make_response(html)
+        posts = scrape_handbook_index(session)
+        assert posts == []
+
+
+class TestCacheOperations:
+    def test_load_cached_post_success(self, tmp_path):
+        import json
+
+        from eahandbookcompiler.scraper import _load_cached_post
+
+        cache_path = tmp_path / "test.json"
+        cache_path.write_text(
+            json.dumps({"markdown": "cached md", "author": "Cached Author", "posted_date": "2023-01-01"}),
+            encoding="utf-8",
+        )
+        post = Post(title="T", url="u")
+        result = _load_cached_post(cache_path, post)
+        assert result is True
+        assert post.markdown == "cached md"
+        assert post.author == "Cached Author"
+        assert post.posted_date == "2023-01-01"
+
+    def test_load_cached_post_missing_file(self, tmp_path):
+        from eahandbookcompiler.scraper import _load_cached_post
+
+        cache_path = tmp_path / "missing.json"
+        post = Post(title="T", url="u")
+        result = _load_cached_post(cache_path, post)
+        assert result is False
+
+    def test_load_cached_post_invalid_json(self, tmp_path):
+        from eahandbookcompiler.scraper import _load_cached_post
+
+        cache_path = tmp_path / "bad.json"
+        cache_path.write_text("not valid json", encoding="utf-8")
+        post = Post(title="T", url="u")
+        result = _load_cached_post(cache_path, post)
+        assert result is False
+
+    def test_save_post_to_cache(self, tmp_path):
+        import json
+
+        from eahandbookcompiler.scraper import _save_post_to_cache
+
+        cache_path = tmp_path / "saved.json"
+        post = Post(title="T", url="u", markdown="md", author="A", posted_date="2023-01-01")
+        _save_post_to_cache(cache_path, post)
+        assert cache_path.exists()
+        data = json.loads(cache_path.read_text(encoding="utf-8"))
+        assert data["markdown"] == "md"
+        assert data["author"] == "A"
+
+    def test_save_post_to_cache_os_error(self, tmp_path):
+        from eahandbookcompiler.scraper import _save_post_to_cache
+
+        cache_path = tmp_path / "nonexistent_dir" / "file.json"
+        post = Post(title="T", url="u", markdown="md")
+        # Should not raise, just silently fail
+        _save_post_to_cache(cache_path, post)
+        assert not cache_path.exists()
+
+
+class TestProcessSinglePostCache:
+    def test_uses_cache_when_available(self, tmp_path):
+        import json
+
+        from eahandbookcompiler.scraper import _process_single_post
+
+        post = Post(title="T", url="https://forum.effectivealtruism.org/posts/abc/test")
+        # Pre-populate cache
+        import hashlib
+
+        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+        cache_path = tmp_path / f"{url_hash}.json"
+        cache_path.write_text(
+            json.dumps({"markdown": "from cache", "author": "Cache", "posted_date": "2024-01-01"}),
+            encoding="utf-8",
+        )
+
+        session = MagicMock()
+        _process_single_post(post, session, tmp_path)
+
+        assert post.markdown == "from cache"
+        assert post.author == "Cache"
+        session.get.assert_not_called()
+
+
+class TestScrapeAllVerbose:
+    def test_verbose_sequential(self, capsys):
+        session = MagicMock()
+        index_response = _make_response(SAMPLE_HANDBOOK_HTML)
+        post_response = _make_response(SAMPLE_POST_HTML)
+        session.get.side_effect = [index_response, post_response, post_response, post_response]
+
+        handbook = scrape_all(session=session, delay=0, max_workers=1, verbose=True)
+
+        assert len(handbook.posts) == 3
+        captured = capsys.readouterr()
+        assert "Fetching handbook index" in captured.out
+        assert "Found 3 posts" in captured.out
+
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_verbose_concurrent(self, mock_make_session, capsys):
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
+
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        handbook = scrape_all(session=index_session, delay=0, max_workers=2, verbose=True)
+
+        assert len(handbook.posts) == 3
+        captured = capsys.readouterr()
+        assert "Fetching handbook index" in captured.out
