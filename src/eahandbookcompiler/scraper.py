@@ -640,10 +640,15 @@ def scrape_all(
 
     if verbose:
         click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
+    else:
+        click.secho("Fetching handbook index... ", fg="blue", nl=False)
+
     posts = scrape_handbook_index(session)
 
     if verbose:
         click.echo(f"Found {len(posts)} posts. Fetching content …")
+    else:
+        click.secho("Done.", fg="green")
 
     if cache_dir is not None:
         cache_dir.mkdir(parents=True, exist_ok=True)
