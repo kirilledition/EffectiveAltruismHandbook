@@ -621,6 +621,7 @@ class TestConvertToEpub:
         mock_subprocess_run.assert_called_once_with(
             [
                 "/usr/bin/pandoc",
+                "--sandbox",
                 str(markdown_path),
                 "--from=markdown",
                 "--to=epub3",
@@ -647,7 +648,7 @@ class TestConvertToPdf:
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
-        assert "--sandbox" not in args
+        assert "--sandbox" in args
 
 
 class TestFetchRedirects:
