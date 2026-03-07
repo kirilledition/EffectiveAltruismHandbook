@@ -163,6 +163,7 @@ class TestPandocSandbox:
         from eahandbookcompiler.converter import convert_to_epub
 
         mock_which.return_value = "pandoc"
+        mock_run.return_value.stdout = b"pandoc 2.15\n"
         convert_to_epub(tmp_path / "in.md", tmp_path / "out.epub")
 
         args, kwargs = mock_run.call_args
@@ -176,9 +177,27 @@ class TestPandocSandbox:
         from eahandbookcompiler.converter import convert_to_pdf
 
         mock_which.return_value = "pandoc"
+        mock_run.return_value.stdout = b"pandoc 2.15\n"
         convert_to_pdf(tmp_path / "in.md", tmp_path / "out.pdf")
 
         args, kwargs = mock_run.call_args
         cmd_list = args[0]
         assert "--sandbox" in cmd_list
         assert kwargs["check"] is True
+
+class TestPandocVersion:
+    @patch("shutil.which")
+    @patch("subprocess.run")
+    def test_sandbox_flag_version_requirement(self, mock_run, mock_which):
+        from eahandbookcompiler.converter import require_pandoc_with_sandbox
+
+        mock_which.return_value = "pandoc"
+
+        # Test valid version
+        mock_run.return_value.stdout = b"pandoc 2.15\n"
+        assert require_pandoc_with_sandbox() == "pandoc"
+
+        # Test invalid version
+        mock_run.return_value.stdout = b"pandoc 2.14.2\n"
+        with pytest.raises(RuntimeError, match="requires pandoc >= 2.15"):
+            require_pandoc_with_sandbox()

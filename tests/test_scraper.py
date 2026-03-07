@@ -614,13 +614,15 @@ class TestConvertToEpub:
         markdown_path = tmp_path / "input.markdown"
         test_output_path = tmp_path / "output.epub"
 
+        mock_subprocess_run.return_value.stdout = b"pandoc 2.15\n"
         result = convert_to_epub(markdown_path, test_output_path)
 
         assert result == test_output_path
         mock_require_pandoc.assert_called_once()
-        mock_subprocess_run.assert_called_once_with(
+        mock_subprocess_run.assert_called_with(
             [
                 "/usr/bin/pandoc",
+                "--sandbox",
                 str(markdown_path),
                 "--from=markdown",
                 "--to=epub3",
@@ -644,6 +646,7 @@ class TestConvertToPdf:
         markdown_path = tmp_path / "test.markdown"
         test_output_path = tmp_path / "test.pdf"
 
+        mock_run.return_value.stdout = b"pandoc 2.15\n"
         convert_to_pdf(markdown_path, test_output_path)
 
         mock_run.assert_called_once()
