@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 import click
 import requests
@@ -169,8 +170,10 @@ def html_to_markdown(html_element: Tag) -> str:
     for element in html_element.find_all(["a", "img", "source", "object", "iframe", "embed"]):
         for attr in ("href", "src"):
             val = element.get(attr)
-            if val and isinstance(val, str) and val.lower().strip().startswith(("javascript:", "data:")):
-                del element[attr]
+            if val and isinstance(val, str):
+                cleaned_val = re.sub(r"[\s\x00-\x1f\x7f-\x9f]", "", unquote(html.unescape(val))).lower()
+                if cleaned_val.startswith(("javascript:", "data:", "vbscript:")):
+                    del element[attr]
 
     # ⚡ Bolt Optimization: Use MarkdownConverter.convert_soup() directly
     # Passing a BeautifulSoup element to the markdownify() helper function
