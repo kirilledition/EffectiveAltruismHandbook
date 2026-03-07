@@ -628,6 +628,7 @@ class TestConvertToEpub:
                 "--toc-depth=2",
                 "--split-level=2",
                 f"--css={test_output_path.parent / 'epub.css'}",
+                "--sandbox",
             ],
             check=True,
         )
@@ -647,7 +648,7 @@ class TestConvertToPdf:
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
-        assert "--sandbox" not in args
+        assert "--sandbox" in args
 
 
 class TestFetchRedirects:

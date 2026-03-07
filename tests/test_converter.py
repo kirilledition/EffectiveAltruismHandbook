@@ -154,3 +154,31 @@ class TestBuildAll:
         assert result["markdown"].exists()
         mock_epub.assert_called_once()
         mock_pdf.assert_called_once()
+
+
+class TestPandocSandbox:
+    @patch("subprocess.run")
+    @patch("shutil.which")
+    def test_epub_uses_sandbox(self, mock_which, mock_run, tmp_path):
+        from eahandbookcompiler.converter import convert_to_epub
+
+        mock_which.return_value = "pandoc"
+        convert_to_epub(tmp_path / "in.md", tmp_path / "out.epub")
+
+        args, kwargs = mock_run.call_args
+        cmd_list = args[0]
+        assert "--sandbox" in cmd_list
+        assert kwargs["check"] is True
+
+    @patch("subprocess.run")
+    @patch("shutil.which")
+    def test_pdf_uses_sandbox(self, mock_which, mock_run, tmp_path):
+        from eahandbookcompiler.converter import convert_to_pdf
+
+        mock_which.return_value = "pandoc"
+        convert_to_pdf(tmp_path / "in.md", tmp_path / "out.pdf")
+
+        args, kwargs = mock_run.call_args
+        cmd_list = args[0]
+        assert "--sandbox" in cmd_list
+        assert kwargs["check"] is True
