@@ -83,9 +83,11 @@ def build(
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
+    click.secho("Building markdown, EPUB, and PDF... ", fg="blue", nl=False)
     paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
+    click.secho("Done.", fg="green")
 
-    click.echo("Output files:")
+    click.echo("\nOutput files:")
     for format_name, path in paths.items():
         click.echo(f"  {format_name}: {path}")
 
@@ -183,8 +185,14 @@ def convert(markdown_file: str, output_dir: str) -> None:
     markdown_path = Path(markdown_file)
     output_path = Path(output_dir)
 
+    click.secho("Converting to EPUB... ", fg="blue", nl=False)
     epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
-    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
+    click.secho("Done.", fg="green")
 
-    click.echo(f"epub: {epub_path}")
-    click.echo(f"pdf:  {pdf_path}")
+    click.secho("Converting to PDF... ", fg="blue", nl=False)
+    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
+    click.secho("Done.", fg="green")
+
+    click.echo("\nOutput files:")
+    click.echo(f"  epub: {epub_path}")
+    click.echo(f"  pdf:  {pdf_path}")
