@@ -127,9 +127,6 @@ def handbook_to_markdown(
     # Insert metadata front page
     lines.append(build_metadata_page(handbook, commit_hash=commit_hash, repo_url=repo_url))
 
-    # Insert table of contents
-    lines.append("\\tableofcontents\n\n")
-
     current_section: str | None = None
 
     for post in handbook.posts:
@@ -251,6 +248,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
             "--from=markdown",
             "--to=epub3",
             f"--output={output_path}",
+            "--toc",
             "--toc-depth=2",
             "--split-level=2",
             f"--css={dummy_css}",
@@ -290,6 +288,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         "--to=pdf",
         f"--pdf-engine={pdf_engine}",
         f"--output={output_path}",
+        "--toc",
         "--toc-depth=2",
     ]
 

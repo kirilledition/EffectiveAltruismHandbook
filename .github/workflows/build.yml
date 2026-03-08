@@ -161,6 +161,7 @@ jobs:
           echo "date=$DATE" >> "$GITHUB_OUTPUT"
           mv dist/eahandbookcompiler.epub "dist/EA Handbook — ${DATE}.epub"
           mv dist/eahandbookcompiler.pdf "dist/EA Handbook — ${DATE}.pdf"
+          mv dist/eahandbookcompiler.md "dist/EA Handbook — ${DATE}.md"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -173,10 +174,12 @@ jobs:
             **Files:**
             - `EA Handbook — ${{ steps.meta.outputs.date }}.epub` — EPUB 3 ebook
             - `EA Handbook — ${{ steps.meta.outputs.date }}.pdf` — PDF document
+            - `EA Handbook — ${{ steps.meta.outputs.date }}.md` — Markdown document
             - `eahandbookcompiler-*.whl` — Python wheel (install with `uv pip install`)
           files: |
             dist/EA Handbook — ${{ steps.meta.outputs.date }}.epub
             dist/EA Handbook — ${{ steps.meta.outputs.date }}.pdf
+            dist/EA Handbook — ${{ steps.meta.outputs.date }}.md
             dist/*.whl
           token: ${{ secrets.GITHUB_TOKEN }}
           make_latest: true
