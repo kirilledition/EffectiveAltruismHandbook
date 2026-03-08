@@ -35,6 +35,7 @@ LARGE_SEQ_RIGHT_RE = re.compile(r"LargeSequencesItem-right")
 CONTENT_CLASS_RE = re.compile(r"(?i)content")
 TOC_CLASS_RE = re.compile(r"(?i)tableofcontents")
 
+
 @dataclass
 class Post:
     """A single post/chapter from the EA Handbook.
