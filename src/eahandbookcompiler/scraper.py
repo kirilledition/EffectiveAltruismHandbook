@@ -641,7 +641,7 @@ def scrape_all(
     if verbose:
         click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
     else:
-        click.secho("Fetching handbook index... ", fg="blue", nl=False)
+        click.secho("Fetching handbook index… ", fg="blue", nl=False)
 
     posts = scrape_handbook_index(session)
 
