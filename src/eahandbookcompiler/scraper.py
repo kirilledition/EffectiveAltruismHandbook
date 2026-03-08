@@ -35,7 +35,6 @@ LARGE_SEQ_RIGHT_RE = re.compile(r"LargeSequencesItem-right")
 CONTENT_CLASS_RE = re.compile(r"(?i)content")
 TOC_CLASS_RE = re.compile(r"(?i)tableofcontents")
 
-
 @dataclass
 class Post:
     """A single post/chapter from the EA Handbook.
@@ -468,8 +467,11 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     # Look for the main content area, avoiding TableOfContents which has 'content' in the name
     content = None
     for div in soup.find_all("div", class_=CONTENT_CLASS_RE):
-        classes = div.get("class", [])
-        if not any(TOC_CLASS_RE.search(c) for c in classes):
+        classes = div.get("class")
+        if isinstance(classes, list) and not any(TOC_CLASS_RE.search(c) for c in classes):
+            content = div
+            break
+        if isinstance(classes, str) and not TOC_CLASS_RE.search(classes):
             content = div
             break
 
