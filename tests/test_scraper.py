@@ -621,6 +621,7 @@ class TestConvertToEpub:
         mock_subprocess_run.assert_called_once_with(
             [
                 "/usr/bin/pandoc",
+                "--sandbox",
                 str(markdown_path),
                 "--from=markdown",
                 "--to=epub3",
@@ -648,7 +649,8 @@ class TestConvertToPdf:
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
-        assert "--sandbox" not in args
+        assert "--sandbox" in args
+        assert "--toc" in args
 
 
 class TestFetchRedirects:
@@ -1165,3 +1167,30 @@ class TestScrapeAllVerbose:
         assert len(handbook.posts) == 3
         captured = capsys.readouterr()
         assert "Fetching handbook index" in captured.out
+
+
+def test_html_to_markdown_xss_evasion():
+    """Test that XSS evasion techniques on href/src attributes are stripped correctly."""
+    html = """<div>
+    <a href="jav	ascript:alert(1)">Click me6</a>
+    <a href="java\nscript:alert(1)">Click me7</a>
+    <a href="jav&#x0A;ascript:alert(1)">Click me8</a>
+    <a href="  javascript:alert(1) ">Click me4</a>
+    <a href="javascript:alert(1)">Click me5</a>
+    <a href="%6Aavascrip%74:%61lert(1)">Click me6</a>
+    <a href="&#x6A;avascrip&#x74;&#x3A;alert(1)">Click me7</a>
+    <a href="vbscript:msgbox(1)">Click me8</a>
+    <a href="https://example.com">safe</a>
+    <a href="mailto:test@example.com">safe mailto</a>
+    </div>"""
+    soup = BeautifulSoup(html, "lxml")
+    tag = soup.find("div")
+    assert tag is not None
+    md = html_to_markdown(tag)
+
+    assert "javascript:" not in md
+    assert "vbscript:" not in md
+    assert "alert(1)" not in md
+    assert "msgbox(1)" not in md
+    assert "[safe](https://example.com)" in md
+    assert "[safe mailto](mailto:test@example.com)" in md
