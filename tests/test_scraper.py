@@ -1169,10 +1169,6 @@ class TestScrapeAllVerbose:
 
 def test_html_to_markdown_xss_evasion():
     """Test that XSS evasion techniques on href/src attributes are stripped correctly."""
-    from bs4 import BeautifulSoup
-
-    from eahandbookcompiler.scraper import html_to_markdown
-
     html = """<div>
     <a href="jav	ascript:alert(1)">Click me6</a>
     <a href="java\nscript:alert(1)">Click me7</a>
