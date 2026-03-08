@@ -114,6 +114,9 @@ class TestIsEaForumPost:
     def test_external_url(self):
         assert not is_ea_forum_post("https://example.com/posts/abc")
 
+    def test_ssrf_bypass_domain(self):
+        assert not is_ea_forum_post("https://forum.effectivealtruism.org@evil.com/posts/abc")
+
     def test_handbook_index_url(self):
         assert not is_ea_forum_post("https://forum.effectivealtruism.org/handbook")
 
@@ -694,6 +697,20 @@ class TestFetchRedirects:
         redirect_response = MagicMock()
         redirect_response.is_redirect = True
         redirect_response.headers = {"Location": "https://evil.com/post"}
+
+        session.get.return_value = redirect_response
+
+        from eahandbookcompiler.scraper import fetch
+
+        with pytest.raises(ValueError, match=r"Unsafe redirect domain: evil\.com"):
+            fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_fetch_unsafe_domain_redirect_ssrf_bypass(self):
+        session = MagicMock()
+
+        redirect_response = MagicMock()
+        redirect_response.is_redirect = True
+        redirect_response.headers = {"Location": "https://effectivealtruism.org@evil.com/post"}
 
         session.get.return_value = redirect_response
 
