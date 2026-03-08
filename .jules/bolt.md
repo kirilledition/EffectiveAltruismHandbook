@@ -13,3 +13,7 @@
 ## 2024-05-18 - BeautifulSoup `get_text()` bottleneck on nested DOM
 **Learning:** Calling `.get_text()` on every `div` to calculate its text length is NOT an O(1) C-level operation; it is a recursive pure Python tree traversal that constantly concatenates strings and allocates memory. If used in a loop over all elements, it downgrades performance to O(N^2) and spikes memory usage. The previous custom O(N) integer-based `string=True` node traversal was actually faster and more memory-efficient.
 **Action:** Never use `get_text()` repeatedly on nested elements within loops when checking for lengths or content heuristics.
+
+## 2025-03-08 - BeautifulSoup class parsing and regex matching
+**Learning:** In BeautifulSoup 4, for HTML documents, the `class` attribute is parsed as a list of strings, not a single string. Passing `class_=lambda c: "pattern" in c.lower()` can raise `AttributeError: 'list' object has no attribute 'lower'`. Moreover, using `re.compile` with `class_` correctly evaluates against each class item safely and is significantly faster than using custom Python lambda functions for DOM traversal because it leverages C-level regex evaluations natively rather than making repeated Python function calls.
+**Action:** Always pre-compile regular expressions at the module level (e.g., `COMMENTS_RE = re.compile(r"(?i)comments")`) and pass them directly to `class_` in `find()` or `find_all()`. Avoid using lambda functions for DOM lookups.
