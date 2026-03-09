@@ -12,3 +12,8 @@
 **Vulnerability:** XSS bypass via URL scheme obfuscation. The previous protection against malicious URL attributes (`href`, `src`) relied on a naive `val.lower().strip().startswith(("javascript:", "data:"))` check. Attackers could bypass this by injecting whitespace (e.g., `jav ascript:`), newlines, or URL/HTML encoded entities into the scheme, leading to XSS payloads persisting in generated PDFs or EPUBs.
 **Learning:** Browsers are highly fault-tolerant when parsing URIs. They ignore non-printable control characters, whitespaces, and decode HTML entities before evaluation. Naive string matching on unnormalized attributes is insufficient for blocking dangerous schemes.
 **Prevention:** Always normalize untrusted URLs before validation. Perform HTML entity unescaping (`html.unescape`), URL unquoting (`urllib.parse.unquote`), and aggressively strip all whitespaces and non-printable control characters using regex (`re.sub(r"[\s\x00-\x1f\x7f-\x9f]", "", val)`) before checking for malicious protocols (`javascript:`, `data:`, `vbscript:`).
+
+## 2025-03-09 - Fix SSRF Vulnerability in URL parsing
+**Vulnerability:** Server-Side Request Forgery (SSRF) bypass through URL validation using `.netloc`.
+**Learning:** Python's `urllib.parse.urlparse().netloc` contains user credentials (e.g. `user:pass@domain.com`). This allows attackers to bypass domain whitelist checks by placing a trusted domain in the username section (e.g., `http://effectivealtruism.org:pass@evil.com`).
+**Prevention:** Always use `urllib.parse.urlparse().hostname` instead of `.netloc` when validating domains to prevent SSRF vulnerabilities.

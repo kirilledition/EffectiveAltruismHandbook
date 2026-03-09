@@ -112,7 +112,7 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
             if parsed.scheme not in ("http", "https"):
                 raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
 
-            netloc = parsed.netloc.split(":")[0]
+            netloc = parsed.hostname or ""
             if not (netloc == "effectivealtruism.org" or netloc.endswith(".effectivealtruism.org")):
                 raise ValueError(f"Unsafe redirect domain: {netloc}")
 
@@ -138,7 +138,9 @@ def is_ea_forum_post(url: str) -> bool:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https", ""):
         return False
-    return parsed.netloc in ("forum.effectivealtruism.org", "") and ("/posts/" in parsed.path or "/s/" in parsed.path)
+    return (parsed.hostname or "") in ("forum.effectivealtruism.org", "") and (
+        "/posts/" in parsed.path or "/s/" in parsed.path
+    )
 
 
 def html_to_markdown(html_element: Tag) -> str:
