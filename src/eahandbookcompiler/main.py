@@ -183,8 +183,22 @@ def convert(markdown_file: str, output_dir: str) -> None:
     markdown_path = Path(markdown_file)
     output_path = Path(output_dir)
 
-    epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
-    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
+    click.secho("Converting to EPUB... ", fg="blue", nl=False)
+    try:
+        epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+        click.echo(f"  epub: {epub_path}")
 
-    click.echo(f"epub: {epub_path}")
-    click.echo(f"pdf:  {pdf_path}")
+    click.secho("Converting to PDF... ", fg="blue", nl=False)
+    try:
+        pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+        click.echo(f"  pdf:  {pdf_path}")

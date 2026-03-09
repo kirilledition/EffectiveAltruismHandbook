@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import click
+
 if TYPE_CHECKING:
     from eahandbookcompiler.scraper import Handbook
 
@@ -335,13 +337,36 @@ def build_all(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_markdown_path = handbook_to_markdown(
-        handbook,
-        output_dir / "eahandbookcompiler.md",
-        commit_hash=commit_hash,
-        repo_url=repo_url,
-    )
-    epub_path = convert_to_epub(output_markdown_path, output_dir / "eahandbookcompiler.epub")
-    pdf_path = convert_to_pdf(output_markdown_path, output_dir / "eahandbookcompiler.pdf")
+    click.secho("Building Markdown... ", fg="blue", nl=False)
+    try:
+        output_markdown_path = handbook_to_markdown(
+            handbook,
+            output_dir / "eahandbookcompiler.md",
+            commit_hash=commit_hash,
+            repo_url=repo_url,
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+
+    click.secho("Converting to EPUB... ", fg="blue", nl=False)
+    try:
+        epub_path = convert_to_epub(output_markdown_path, output_dir / "eahandbookcompiler.epub")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+
+    click.secho("Converting to PDF... ", fg="blue", nl=False)
+    try:
+        pdf_path = convert_to_pdf(output_markdown_path, output_dir / "eahandbookcompiler.pdf")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     return {"markdown": output_markdown_path, "epub": epub_path, "pdf": pdf_path}
