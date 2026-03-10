@@ -13,3 +13,11 @@
 ## 2024-05-18 - BeautifulSoup `get_text()` bottleneck on nested DOM
 **Learning:** Calling `.get_text()` on every `div` to calculate its text length is NOT an O(1) C-level operation; it is a recursive pure Python tree traversal that constantly concatenates strings and allocates memory. If used in a loop over all elements, it downgrades performance to O(N^2) and spikes memory usage. The previous custom O(N) integer-based `string=True` node traversal was actually faster and more memory-efficient.
 **Action:** Never use `get_text()` repeatedly on nested elements within loops when checking for lengths or content heuristics.
+
+## 2025-02-28 - Regex versus native string operations for simple parsing
+**Learning:** Using regular expressions (e.g., `re.compile(r"^(#+) ")`) to process simple, predictable patterns like markdown headings can be significantly slower than native string indexing and methods (e.g., `.lstrip("#")`).
+**Action:** Always measure the overhead of regex for basic string parsing inside large iteration loops. Prefer Python's highly optimized built-in string methods like `.split()`, `.find()`, and `.lstrip()` where they provide an equivalent logic to avoid regex instantiation and matching cost.
+
+## 2025-02-28 - Deduplication logic in Python
+**Learning:** In Python 3.7+, standard dictionaries preserve insertion order. Replacing the traditional `set` + `list` accumulator pattern with a single `dict` loop (`if key not in seen: seen[key] = obj`) is roughly 2x faster and avoids maintaining two separate collections. However, be cautious with dictionary comprehensions (`{obj.key: obj for obj in arr}`): they evaluate the whole array and continuously overwrite keys, meaning they keep the **last** duplicate occurrence, causing a regression if the **first** occurrence must be preserved.
+**Action:** When deduplicating a list of objects while preserving their original order, avoid set + list operations or set comprehensions. Instead, use a simple `dict` accumulator loop to cleanly preserve the *first* occurrence with O(N) performance.
