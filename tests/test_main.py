@@ -18,15 +18,15 @@ def test_cli_version():
     assert "cli, version" in result.output
 
 
-@patch("eahandbookcompiler.main.build_all")
+@patch("eahandbookcompiler.main.convert_to_pdf")
+@patch("eahandbookcompiler.main.convert_to_epub")
+@patch("eahandbookcompiler.main.handbook_to_markdown")
 @patch("eahandbookcompiler.main.scrape_all")
-def test_build_success(mock_scrape_all, mock_build_all):
+def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_to_epub, mock_convert_to_pdf):
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
-    mock_build_all.return_value = {
-        "markdown": Path("dist/markdown"),
-        "epub": Path("dist/epub"),
-        "pdf": Path("dist/pdf"),
-    }
+    mock_handbook_to_markdown.return_value = Path("custom-dist/eahandbookcompiler.md")
+    mock_convert_to_epub.return_value = Path("custom-dist/eahandbookcompiler.epub")
+    mock_convert_to_pdf.return_value = Path("custom-dist/eahandbookcompiler.pdf")
 
     runner = CliRunner()
     result = runner.invoke(
@@ -43,13 +43,16 @@ def test_build_success(mock_scrape_all, mock_build_all):
 
     assert result.exit_code == 0
     assert "Output files:" in result.output
-    assert "markdown: dist/markdown" in result.output
-    assert "epub: dist/epub" in result.output
-    assert "pdf: dist/pdf" in result.output
+    assert "markdown: custom-dist/eahandbookcompiler.md" in result.output
+    assert "epub: custom-dist/eahandbookcompiler.epub" in result.output
+    assert "pdf: custom-dist/eahandbookcompiler.pdf" in result.output
 
     mock_scrape_all.assert_called_once()
-    mock_build_all.assert_called_once()
-    _, kwargs = mock_build_all.call_args
+    mock_handbook_to_markdown.assert_called_once()
+    mock_convert_to_epub.assert_called_once()
+    mock_convert_to_pdf.assert_called_once()
+
+    _, kwargs = mock_handbook_to_markdown.call_args
     assert kwargs["commit_hash"] == "abc1234"
     assert kwargs["repo_url"] == "https://github.com/test/repo"
 
