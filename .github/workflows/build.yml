@@ -48,7 +48,6 @@ jobs:
       - name: Scrape handbook (markdown only)
         run: |
           uv run python -m eahandbookcompiler scrape --output-dir dist --verbose \
-            --commit-hash "${{ github.sha }}" \
             --repo-url "https://github.com/${{ github.repository }}"
 
       - name: Compute content hash

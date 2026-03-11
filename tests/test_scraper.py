@@ -73,6 +73,7 @@ def _make_response(html: str) -> MagicMock:
     response.text = html
     response.raise_for_status = MagicMock()
     response.is_redirect = False
+    response.headers = {"Content-Type": "text/html; charset=utf-8"}
     return response
 
 
@@ -1382,3 +1383,125 @@ class TestScrapeAllFallbacks:
 
         captured = capsys.readouterr()
         assert "Failed." in captured.out
+
+
+class TestFetchContentTypeValidation:
+    def test_rejects_binary_content_type(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        response = MagicMock()
+        response.is_redirect = False
+        response.raise_for_status = MagicMock()
+        response.headers = {"Content-Type": "application/octet-stream"}
+        session.get.return_value = response
+
+        with pytest.raises(ValueError, match="Unexpected Content-Type"):
+            fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_rejects_image_content_type(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        response = MagicMock()
+        response.is_redirect = False
+        response.raise_for_status = MagicMock()
+        response.headers = {"Content-Type": "image/png"}
+        session.get.return_value = response
+
+        with pytest.raises(ValueError, match="Unexpected Content-Type"):
+            fetch(session, "https://forum.effectivealtruism.org/post")
+
+    def test_allows_html_content_type(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        response = _make_response("<html><body>ok</body></html>")
+        session.get.return_value = response
+
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "ok"
+
+    def test_allows_missing_content_type(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        response = MagicMock()
+        response.is_redirect = False
+        response.raise_for_status = MagicMock()
+        response.text = "<html><body>ok</body></html>"
+        response.headers = {}
+        session.get.return_value = response
+
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "ok"
+
+    def test_allows_xhtml_content_type(self):
+        from eahandbookcompiler.scraper import fetch
+
+        session = MagicMock()
+        response = MagicMock()
+        response.is_redirect = False
+        response.raise_for_status = MagicMock()
+        response.text = "<html><body>ok</body></html>"
+        response.headers = {"Content-Type": "application/xhtml+xml"}
+        session.get.return_value = response
+
+        soup = fetch(session, "https://forum.effectivealtruism.org/post")
+        assert soup.text == "ok"
+
+
+class TestConcurrentThreadLocalSession:
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_thread_local_session_reused_within_thread(self, mock_make_session):
+        """Each worker thread creates exactly one session via thread-local storage."""
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
+
+        # With 1 worker, only 1 thread-local session should be created
+        handbook = scrape_all(session=index_session, delay=0, max_workers=2)
+
+        assert len(handbook.posts) == 3
+        for post in handbook.posts:
+            assert post.markdown
+        # make_session should be called at most max_workers times (not once per post)
+        assert mock_make_session.call_count <= 2
+
+
+class TestConcurrentDelay:
+    @patch("eahandbookcompiler.scraper.time.sleep")
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_concurrent_respects_delay(self, mock_make_session, mock_sleep):
+        """Concurrent mode should sleep after each post to throttle requests."""
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
+
+        scrape_all(session=index_session, delay=0.5, max_workers=2)
+
+        # Each post should trigger a sleep call with the specified delay
+        sleep_calls = [c for c in mock_sleep.call_args_list if c[0] == (0.5,)]
+        assert len(sleep_calls) == 3  # one per post
+
+    @patch("eahandbookcompiler.scraper.time.sleep")
+    @patch("eahandbookcompiler.scraper.make_session")
+    def test_concurrent_no_delay_when_zero(self, mock_make_session, mock_sleep):
+        """Concurrent mode should skip sleep when delay is 0."""
+        thread_session = MagicMock()
+        thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
+        mock_make_session.return_value = thread_session
+
+        index_session = MagicMock()
+        index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
+
+        scrape_all(session=index_session, delay=0, max_workers=2)
+
+        # No sleep calls should be made when delay is 0
+        mock_sleep.assert_not_called()
