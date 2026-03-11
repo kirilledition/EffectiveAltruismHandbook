@@ -1240,9 +1240,8 @@ class TestFindLargestContentDivisionEdgeCases:
         html = "<html><body><div></div></body></html>"
         soup = BeautifulSoup(html, "lxml")
         result = find_largest_content_division(soup)
-        # The div exists but has no text nodes, so div_text_lengths will be empty
-        # But lxml adds whitespace text nodes in html/body, so body div will have text
-        assert result is not None or result is None  # depends on parser behavior
+        # The div exists but has no text content, so div_text_lengths is empty
+        assert result is None
 
 
 class TestExtractFromReactStructureEmptyHref:
@@ -1359,6 +1358,7 @@ class TestScrapeAllFallbacks:
             mock_session = MagicMock()
             index_response = _make_response(SAMPLE_HANDBOOK_HTML)
             post_response = _make_response(SAMPLE_POST_HTML)
+            # SAMPLE_HANDBOOK_HTML has 3 posts, so we need 1 index + 3 post responses
             mock_session.get.side_effect = [index_response, post_response, post_response, post_response]
             mock_make.return_value = mock_session
 
