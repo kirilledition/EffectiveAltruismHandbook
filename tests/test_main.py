@@ -46,7 +46,9 @@ def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_
     assert "markdown: custom-dist/eahandbookcompiler.md" in result.output
     assert "epub: custom-dist/eahandbookcompiler.epub" in result.output
     assert "pdf: custom-dist/eahandbookcompiler.pdf" in result.output
-    assert "Building …" in result.output
+    assert "Building markdown..." in result.output
+    assert "Building epub..." in result.output
+    assert "Building pdf..." in result.output
     assert "Done." in result.output
 
     mock_scrape_all.assert_called_once()
@@ -136,3 +138,76 @@ def test_convert_file_not_found():
     result = runner.invoke(convert, ["does-not-exist.md"])
     assert result.exit_code != 0
     assert "does not exist" in result.output
+
+
+@patch("eahandbookcompiler.main.handbook_to_markdown")
+@patch("eahandbookcompiler.main.scrape_all")
+def test_build_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
+    mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
+    mock_handbook_to_markdown.side_effect = RuntimeError("write error")
+
+    runner = CliRunner()
+    result = runner.invoke(build, ["--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
+
+
+@patch("eahandbookcompiler.main.convert_to_epub")
+@patch("eahandbookcompiler.main.handbook_to_markdown")
+@patch("eahandbookcompiler.main.scrape_all")
+def test_build_epub_failure(mock_scrape_all, mock_handbook_to_markdown, mock_convert_to_epub):
+    mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
+    mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
+    mock_convert_to_epub.side_effect = RuntimeError("epub error")
+
+    runner = CliRunner()
+    result = runner.invoke(build, ["--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
+
+
+@patch("eahandbookcompiler.main.convert_to_pdf")
+@patch("eahandbookcompiler.main.convert_to_epub")
+@patch("eahandbookcompiler.main.handbook_to_markdown")
+@patch("eahandbookcompiler.main.scrape_all")
+def test_build_pdf_failure(mock_scrape_all, mock_handbook_to_markdown, mock_convert_to_epub, mock_convert_to_pdf):
+    mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
+    mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
+    mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
+    mock_convert_to_pdf.side_effect = RuntimeError("pdf error")
+
+    runner = CliRunner()
+    result = runner.invoke(build, ["--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
+
+
+@patch("eahandbookcompiler.main.convert_to_epub")
+def test_convert_epub_failure(mock_convert_to_epub):
+    mock_convert_to_epub.side_effect = RuntimeError("epub error")
+
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        Path("input.md").write_text("# Hello")
+        result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
+
+
+@patch("eahandbookcompiler.main.convert_to_pdf")
+@patch("eahandbookcompiler.main.convert_to_epub")
+def test_convert_pdf_failure(mock_convert_to_epub, mock_convert_to_pdf):
+    mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
+    mock_convert_to_pdf.side_effect = RuntimeError("pdf error")
+
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        Path("input.md").write_text("# Hello")
+        result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
