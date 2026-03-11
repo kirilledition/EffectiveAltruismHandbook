@@ -154,6 +154,8 @@ def is_ea_forum_post(url: str) -> bool:
         return False
 
     return "/posts/" in parsed.path or "/s/" in parsed.path
+
+
 def html_to_markdown(html_element: Tag) -> str:
     """Convert a BeautifulSoup element to clean markdown.
 
