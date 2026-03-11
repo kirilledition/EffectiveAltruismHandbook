@@ -1334,8 +1334,8 @@ class TestScrapePostContentFallbacks:
 
         post = Post(title="Test", url="https://forum.effectivealtruism.org/posts/x/y")
         result = scrape_post_content(post, session)
-        # The fallback uses find_largest_content_division, which should find something
-        assert result.markdown
+        # With no body/content divs, we expect the generic "Content could not be extracted" fallback message.
+        assert "Content could not be extracted" in result.markdown
 
     def test_scrape_post_content_creates_session_when_none(self):
         """When session is None, scrape_post_content creates its own session."""
