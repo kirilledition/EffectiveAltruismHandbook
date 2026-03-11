@@ -1477,6 +1477,8 @@ class TestConcurrentDelay:
     @patch("eahandbookcompiler.scraper.make_session")
     def test_concurrent_respects_delay(self, mock_make_session, mock_sleep):
         """Concurrent mode should sleep after each post to throttle requests."""
+        from unittest.mock import call
+
         thread_session = MagicMock()
         thread_session.get.return_value = _make_response(SAMPLE_POST_HTML)
         mock_make_session.return_value = thread_session
@@ -1487,7 +1489,7 @@ class TestConcurrentDelay:
         scrape_all(session=index_session, delay=0.5, max_workers=2)
 
         # Each post should trigger a sleep call with the specified delay
-        sleep_calls = [c for c in mock_sleep.call_args_list if c[0] == (0.5,)]
+        sleep_calls = [c for c in mock_sleep.call_args_list if c == call(0.5)]
         assert len(sleep_calls) == 3  # one per post
 
     @patch("eahandbookcompiler.scraper.time.sleep")

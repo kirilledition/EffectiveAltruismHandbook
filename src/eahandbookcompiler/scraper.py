@@ -144,8 +144,10 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     # Reject non-HTML responses to avoid processing large binary files
     # (e.g. if the server redirects to an asset CDN).
     content_type = response.headers.get("Content-Type", "")
-    if content_type and "html" not in content_type.lower() and "xhtml" not in content_type.lower():
-        raise ValueError(f"Unexpected Content-Type for {current_url}: {content_type}")
+    if content_type:
+        mime = content_type.split(";")[0].strip().lower()
+        if mime not in ("text/html", "application/xhtml+xml"):
+            raise ValueError(f"Unexpected Content-Type for {current_url}: {content_type}")
 
     return BeautifulSoup(response.text, "lxml")
 
