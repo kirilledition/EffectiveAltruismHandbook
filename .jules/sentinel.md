@@ -13,7 +13,7 @@
 **Learning:** Browsers are highly fault-tolerant when parsing URIs. They ignore non-printable control characters, whitespaces, and decode HTML entities before evaluation. Naive string matching on unnormalized attributes is insufficient for blocking dangerous schemes.
 **Prevention:** Always normalize untrusted URLs before validation. Perform HTML entity unescaping (`html.unescape`), URL unquoting (`urllib.parse.unquote`), and aggressively strip all whitespaces and non-printable control characters using regex (`re.sub(r"[\s\x00-\x1f\x7f-\x9f]", "", val)`) before checking for malicious protocols (`javascript:`, `data:`, `vbscript:`).
 
-## 2024-03-10 - [Critical SSRF bypass using .netloc vs .hostname]
+## 2026-03-10 - [Critical SSRF bypass using .netloc vs .hostname]
 **Vulnerability:** A critical SSRF bypass vulnerability was present in the scraper due to using `urllib.parse.urlparse().netloc.split(":")[0]` instead of `parsed.hostname` to validate target domains. A domain string could include `userinfo` (like `http://effectivealtruism.org@evil.com`), tricking `netloc.split(":")[0]` into reading `effectivealtruism.org` while actual outbound requests hit `evil.com`.
 **Learning:** `netloc` contains both `userinfo` and `port` info, making it vulnerable to such spoofing. Validation logic needs the actual domain without other URL components.
 **Prevention:** Always use `urllib.parse.urlparse().hostname` (with an `or ""` fallback) instead of parsing `.netloc` manually to avoid SSRF vulnerabilities when verifying URLs.
