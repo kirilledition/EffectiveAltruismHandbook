@@ -86,21 +86,36 @@ def build(
     out_path.mkdir(parents=True, exist_ok=True)
 
     click.secho("Building markdown... ", fg="blue", nl=False)
-    md_path = handbook_to_markdown(
-        handbook,
-        out_path / "eahandbookcompiler.md",
-        commit_hash=commit_hash,
-        repo_url=repo_url,
-    )
-    click.secho("Done.", fg="green")
+    try:
+        md_path = handbook_to_markdown(
+            handbook,
+            out_path / "eahandbookcompiler.md",
+            commit_hash=commit_hash,
+            repo_url=repo_url,
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.secho("Building epub... ", fg="blue", nl=False)
-    epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
-    click.secho("Done.", fg="green")
+    try:
+        epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.secho("Building pdf... ", fg="blue", nl=False)
-    pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
-    click.secho("Done.", fg="green")
+    try:
+        pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.echo("Output files:")
     click.echo(f"  markdown: {md_path}")
@@ -209,12 +224,28 @@ def convert(markdown_file: str, output_dir: str) -> None:
     output_path.mkdir(parents=True, exist_ok=True)
 
     click.secho("Building epub... ", fg="blue", nl=False)
-    epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
-    click.secho("Done.", fg="green")
+    try:
+        epub_path = convert_to_epub(
+            markdown_path,
+            output_path / "eahandbookcompiler.epub",
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.secho("Building pdf... ", fg="blue", nl=False)
-    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
-    click.secho("Done.", fg="green")
+    try:
+        pdf_path = convert_to_pdf(
+            markdown_path,
+            output_path / "eahandbookcompiler.pdf",
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.echo(f"epub: {epub_path}")
     click.echo(f"pdf:  {pdf_path}")

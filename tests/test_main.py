@@ -46,6 +46,8 @@ def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_
     assert "markdown: custom-dist/eahandbookcompiler.md" in result.output
     assert "epub: custom-dist/eahandbookcompiler.epub" in result.output
     assert "pdf: custom-dist/eahandbookcompiler.pdf" in result.output
+    assert "Building …" in result.output
+    assert "Done." in result.output
 
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
