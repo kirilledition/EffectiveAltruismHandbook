@@ -25,8 +25,15 @@ HANDBOOK_URL = "https://forum.effectivealtruism.org/handbook"
 BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
 
+# Compiled regexes for optimal class name lookups, avoiding lambda overhead
 POST_BODY_RE = re.compile(r"^(postBody|post-body|PostBody)$")
 AUTHOR_BYLINE_RE = re.compile(r"(?i)author|username|usersname")
+COMMENTS_CLASS_RE = re.compile(r"(?i)comments")
+LARGE_SEQ_COLUMNS_RE = re.compile(r"LargeSequencesItem-columns")
+LARGE_SEQ_TITLE_RE = re.compile(r"LargeSequencesItem-titleAndAuthor")
+LARGE_SEQ_RIGHT_RE = re.compile(r"LargeSequencesItem-right")
+CONTENT_CLASS_RE = re.compile(r"(?i)content")
+TOC_CLASS_RE = re.compile(r"(?i)tableofcontents")
 
 
 @dataclass
@@ -174,10 +181,7 @@ def html_to_markdown(html_element: Tag) -> str:
     for element in html_element.find_all(["nav", "footer", "script", "style", "noscript"]):
         element.decompose()
     # Remove comment sections so forum debates are not included
-    for element in html_element.find_all(
-        "div",
-        class_=lambda c: c and "comments" in c.lower(),
-    ):
+    for element in html_element.find_all("div", class_=COMMENTS_CLASS_RE):
         element.decompose()
     # Remove standard Creative Commons license footers
     _strip_cc_license_footers(html_element)
@@ -395,15 +399,15 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
 
 def _extract_from_react_structure(content: Tag) -> list[Post]:
     posts: list[Post] = []
-    items = content.find_all("div", class_=lambda c: c and "LargeSequencesItem-columns" in c)
+    items = content.find_all("div", class_=LARGE_SEQ_COLUMNS_RE)
     for item in items:
-        title_tag = item.find("div", class_=lambda c: c and "LargeSequencesItem-titleAndAuthor" in c)
+        title_tag = item.find("div", class_=LARGE_SEQ_TITLE_RE)
         current_section = "Introduction"
         if title_tag:
             a_tag = title_tag.find("a")
             current_section = a_tag.get_text(strip=True) if a_tag else title_tag.get_text(strip=True)
 
-        right = item.find("div", class_=lambda c: c and "LargeSequencesItem-right" in c)
+        right = item.find("div", class_=LARGE_SEQ_RIGHT_RE)
         if right:
             for link in right.find_all("a", recursive=True):
                 href = str(link.get("href", ""))
@@ -477,15 +481,21 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     soup = fetch(session, HANDBOOK_URL)
 
     # Look for the main content area, avoiding TableOfContents which has 'content' in the name
-    content = soup.find(
-        "div",
-        class_=lambda c: c and "content" in c.lower() and "tableofcontents" not in c.lower(),
-    )
+    content = None
+    for div in soup.find_all("div", class_=CONTENT_CLASS_RE):
+        classes = div.get("class")
+        if isinstance(classes, list) and not any(TOC_CLASS_RE.search(c) for c in classes):
+            content = div
+            break
+        if isinstance(classes, str) and not TOC_CLASS_RE.search(classes):
+            content = div
+            break
+
     if content is None:
         content = soup.find("main") or soup.find("article") or soup.body
 
     # If we notice LargeSequencesItem anywhere in the body, prefer the full body to avoid missing them
-    if soup.find("div", class_=lambda c: c and "LargeSequencesItem-columns" in c):
+    if soup.find("div", class_=LARGE_SEQ_COLUMNS_RE):
         content = soup.body
 
     if content is None:
