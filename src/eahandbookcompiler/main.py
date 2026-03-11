@@ -5,7 +5,6 @@ from pathlib import Path
 import click
 
 from eahandbookcompiler.converter import (
-    build_all,
     convert_to_epub,
     convert_to_pdf,
     handbook_to_markdown,
@@ -83,11 +82,45 @@ def build(
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
-    paths = build_all(handbook, Path(output_dir), commit_hash=commit_hash, repo_url=repo_url)
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    click.secho("Building markdown... ", fg="blue", nl=False)
+    try:
+        md_path = handbook_to_markdown(
+            handbook,
+            out_path / "eahandbookcompiler.md",
+            commit_hash=commit_hash,
+            repo_url=repo_url,
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+
+    click.secho("Building epub... ", fg="blue", nl=False)
+    try:
+        epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+
+    click.secho("Building pdf... ", fg="blue", nl=False)
+    try:
+        pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.echo("Output files:")
-    for format_name, path in paths.items():
-        click.echo(f"  {format_name}: {path}")
+    click.echo(f"  markdown: {md_path}")
+    click.echo(f"  epub: {epub_path}")
+    click.echo(f"  pdf: {pdf_path}")
 
 
 @cli.command()
@@ -154,12 +187,18 @@ def scrape(
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
 
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    click.secho("Building markdown... ", fg="blue", nl=False)
     path = handbook_to_markdown(
         handbook,
-        Path(output_dir) / "eahandbookcompiler.md",
+        out_path / "eahandbookcompiler.md",
         commit_hash=commit_hash,
         repo_url=repo_url,
     )
+    click.secho("Done.", fg="green")
+
     click.echo(f"Markdown written to: {path}")
 
 
@@ -182,9 +221,31 @@ def convert(markdown_file: str, output_dir: str) -> None:
     """
     markdown_path = Path(markdown_file)
     output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-    epub_path = convert_to_epub(markdown_path, output_path / "eahandbookcompiler.epub")
-    pdf_path = convert_to_pdf(markdown_path, output_path / "eahandbookcompiler.pdf")
+    click.secho("Building epub... ", fg="blue", nl=False)
+    try:
+        epub_path = convert_to_epub(
+            markdown_path,
+            output_path / "eahandbookcompiler.epub",
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+
+    click.secho("Building pdf... ", fg="blue", nl=False)
+    try:
+        pdf_path = convert_to_pdf(
+            markdown_path,
+            output_path / "eahandbookcompiler.pdf",
+        )
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
 
     click.echo(f"epub: {epub_path}")
     click.echo(f"pdf:  {pdf_path}")
