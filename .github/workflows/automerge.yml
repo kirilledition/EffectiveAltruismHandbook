@@ -1,0 +1,29 @@
+name: Auto-merge
+
+# Auto-merges pull requests when all status checks pass and there are
+# no merge conflicts with the main branch.
+#
+# To also BLOCK manual merges when checks fail, add a branch ruleset
+# in repository settings (Settings → Rules → Rulesets) for "main":
+#   Required status checks: "Run tests", "Verify ebook generation",
+#                           "Run linters", "Run type checker"
+
+on:
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: Auto-merge when checks pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: pascalgn/automerge-action@v0.16.4
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_LABELS: ""
+          MERGE_METHOD: "squash"
+          MERGE_DELETE_BRANCH: "true"

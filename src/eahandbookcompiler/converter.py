@@ -281,11 +281,9 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
     if not dummy_css.exists():
         dummy_css.write_text("/* Custom EPUB CSS */\n", encoding="utf-8")
 
-    # Security Enhancement: Use --sandbox to mitigate risks when processing untrusted input.
     subprocess.run(
         [
             pandoc,
-            "--sandbox",
             str(markdown_path),
             "--from=markdown",
             "--to=epub3",
@@ -322,10 +320,8 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
 
     pdf_engine = "weasyprint" if shutil.which("weasyprint") else "pdflatex"
 
-    # Security Enhancement: Use --sandbox to mitigate risks when processing untrusted input.
     cmd = [
         pandoc,
-        "--sandbox",
         str(markdown_path),
         "--from=markdown",
         "--to=pdf",

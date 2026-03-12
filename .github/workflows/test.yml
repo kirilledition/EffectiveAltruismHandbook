@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run tests
@@ -54,3 +57,63 @@ jobs:
           valColorRange: ${{ steps.coverage.outputs.percentage }}
           minColorRange: 50
           maxColorRange: 90
+
+  build-check:
+    name: Verify ebook generation
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install pandoc, weasyprint, and Liberation Sans font
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends pandoc weasyprint fonts-liberation
+
+      - name: Generate sample markdown
+        run: |
+          mkdir -p dist
+          cat > dist/sample.md << 'EOF'
+          ---
+          title: Test Book
+          author: Test Author
+          language: en
+          ---
+
+          # Chapter One
+
+          Hello, world.
+
+          ## Section A
+
+          Some content here with enough text to produce a reasonable file.
+          EOF
+
+      - name: Convert to EPUB and PDF
+        run: uv run python -m eahandbookcompiler convert dist/sample.md --output-dir dist
+
+      - name: Verify output file sizes
+        # The 'convert' CLI command always outputs to eahandbookcompiler.{epub,pdf}
+        run: |
+          for ext in epub pdf; do
+            file="dist/eahandbookcompiler.${ext}"
+            if [ ! -f "$file" ]; then
+              echo "ERROR: $file was not generated"
+              exit 1
+            fi
+            size=$(stat --format=%s "$file")
+            echo "$file: ${size} bytes"
+            if [ "$size" -lt 1000 ]; then
+              echo "ERROR: $file is suspiciously small (${size} bytes)"
+              exit 1
+            fi
+          done
+          echo "All ebook files generated successfully with reasonable sizes."
