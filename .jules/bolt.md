@@ -29,3 +29,9 @@
 ## 2025-03-09 - Skipping unconditional lstrip allocations in loops
 **Learning:** Using `line.lstrip()` unconditionally at the top of a text-processing loop creates a new string object and allocates memory for every single line. In loops traversing many lines (like large Markdown files), this causes significant overhead. We can bypass this by checking `if line[0] == "#"` or `if "`" in line` before calling `.lstrip()`, taking the fast path and avoiding allocation ~90% of the time, resulting in a ~35% speed improvement.
 **Action:** When iterating over thousands of lines in Python, use fast-path boolean checks (like exact character indices `line[0]` or the `in` operator) to filter lines before applying operations that allocate new strings, like `.lstrip()`, `.replace()`, or `.lower()`.
+
+2024-06-25
+⚡ Optimization: Skipped sleep delay on cache hits during scraper operation.
+- **Why:** The sequential and concurrent scrapers unconditionally executed `time.sleep(delay)` after processing every post. When a post was loaded from the local JSON cache (a fast disk operation), it still incurred a 1.0s (default) delay, leading to significant wait times (e.g., ~100 seconds for 100 fully cached posts) doing nothing.
+- **What:** Modified `_process_single_post` to return a `bool` indicating if the post was loaded from cache. Updated `_scrape_posts_sequential` and `_scrape_posts_concurrent`'s internal `_worker` to only execute `time.sleep(delay)` when the post was a cache miss (i.e., a real network request was made).
+- **Result:** Decreased scraping time for fully cached posts linearly by `N * delay` (from ~100s to ~0s for 100 posts with a 1.0s delay).
