@@ -29,3 +29,6 @@
 ## 2025-03-09 - Skipping unconditional lstrip allocations in loops
 **Learning:** Using `line.lstrip()` unconditionally at the top of a text-processing loop creates a new string object and allocates memory for every single line. In loops traversing many lines (like large Markdown files), this causes significant overhead. We can bypass this by checking `if line[0] == "#"` or `if "`" in line` before calling `.lstrip()`, taking the fast path and avoiding allocation ~90% of the time, resulting in a ~35% speed improvement.
 **Action:** When iterating over thousands of lines in Python, use fast-path boolean checks (like exact character indices `line[0]` or the `in` operator) to filter lines before applying operations that allocate new strings, like `.lstrip()`, `.replace()`, or `.lower()`.
+
+2026-03-12
+When performing complex class-based searches in BeautifulSoup (e.g., requiring one string but strictly excluding another, or exact fast matching in loops), passing a custom evaluation function directly to `soup.find(match_fn)` is roughly 35% faster than passing a lambda to the `class_` argument (`class_=lambda c: ...`). This bypasses BeautifulSoup's slow internal attribute list parsing and generalized `SoupStrainer` regex matching overhead.
