@@ -721,6 +721,21 @@ def scrape_all(
     return handbook
 
 
+def _truncate_title(item: str | Post | None) -> str:
+    """Safely extract and truncate a post title for the progress bar."""
+    if not item:
+        return ""
+    max_length = 35
+    title = item.title if isinstance(item, Post) else str(item)
+    return f"{title[:max_length]}…" if len(title) > max_length else title
+
+
+def _get_item_from_bar(item: Post | str | None) -> Post:
+    """Extract a Post from the progress bar item for type checking."""
+    # This is a safe cast because click.progressbar yields the items from the original list
+    return item  # type: ignore[return-value]
+
+
 def _scrape_posts_sequential(
     posts: list[Post],
     session: requests.Session,
@@ -732,8 +747,9 @@ def _scrape_posts_sequential(
     """Download posts one at a time with a polite delay."""
     total = len(posts)
     if not verbose:
-        with click.progressbar(posts, label="Scraping posts") as bar:
-            for i, post in enumerate(bar, 1):
+        with click.progressbar(posts, label="Scraping posts", item_show_func=_truncate_title) as bar:
+            for i, item in enumerate(bar, 1):
+                post = _get_item_from_bar(item)
                 _process_single_post(post, session, cache_dir)
                 if i < total:
                     time.sleep(delay)
@@ -775,10 +791,11 @@ def _scrape_posts_concurrent(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {executor.submit(_worker, post): i for i, post in enumerate(posts)}
         if not verbose:
-            with click.progressbar(length=total, label="Scraping posts") as bar:
+            with click.progressbar(length=total, label="Scraping posts", item_show_func=_truncate_title) as bar:
                 for future in as_completed(future_to_index):
+                    idx = future_to_index[future]
                     future.result()  # propagate exceptions
-                    bar.update(1)
+                    bar.update(1, current_item=posts[idx].title)
         else:
             for future in as_completed(future_to_index):
                 idx = future_to_index[future]
