@@ -186,8 +186,7 @@ def is_ea_forum_post(url: str) -> bool:
     return "/posts/" in parsed.path or "/s/" in parsed.path
 
 
-# ruff: noqa: C901
-def html_to_markdown(html_element: Tag) -> str:
+def html_to_markdown(html_element: Tag) -> str:  # noqa: C901
     """Convert a BeautifulSoup element to clean markdown.
 
     Navigation, footer, script, style, and comment sections are stripped
