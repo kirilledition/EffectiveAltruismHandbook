@@ -1419,6 +1419,7 @@ class TestScrapeAllFallbacks:
         session.get.return_value = response
 
         import click
+
         with pytest.raises(click.ClickException):
             scrape_all(session=session, delay=0, max_workers=1, verbose=False)
 
