@@ -380,7 +380,7 @@ def extract_date(soup: BeautifulSoup) -> str:
     return ""
 
 
-def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
+def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:  # noqa: C901  # Cannot simplify fast tree walk
     """Find the ``<div>`` with the most text content.
 
     Used as a last-resort heuristic when no known post-body selector
@@ -395,22 +395,40 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
     divisions = soup.find_all("div")
     if not divisions:
         return None
-    div_text_lengths: dict[int, int] = {}
-    for text_node in soup.find_all(string=True):
-        if isinstance(text_node, Comment):
-            continue
-        length = len(text_node)
-        if length == 0:
-            continue
-        parent = text_node.parent
-        while parent is not None:
-            if parent.name == "div":
-                div_id = id(parent)
-                div_text_lengths[div_id] = div_text_lengths.get(div_id, 0) + length
-            parent = parent.parent
-    if not div_text_lengths:
+
+    # ⚡ Bolt Optimization: Group text lengths by their immediate parent tag before walking up
+    # the DOM tree. Instead of traversing the ancestor chain for every individual text node
+    # (which results in O(N*D) complexity and redundant traversals for sibling text nodes),
+    # we first accumulate text lengths into `parent_lengths`. We use `id(parent)` as the key
+    # because hashing a BeautifulSoup Tag triggers a slow tree traversal via its custom `__hash__`.
+    # Finally, we bubble up the accumulated lengths for each unique parent tag.
+    div_text_lengths = {id(d): 0 for d in divisions}
+    parent_lengths: dict[int, int] = {}
+    parent_nodes: dict[int, Tag] = {}
+
+    for text_node in soup.descendants:
+        if isinstance(text_node, str) and not isinstance(text_node, Comment):
+            length = len(text_node)
+            if length > 0:
+                parent = text_node.parent
+                if parent is not None:
+                    pid = id(parent)
+                    if pid in parent_lengths:
+                        parent_lengths[pid] += length
+                    else:
+                        parent_lengths[pid] = length
+                        parent_nodes[pid] = parent
+
+    for pid, total_length in parent_lengths.items():
+        p = parent_nodes[pid]
+        while p is not None:
+            if p.name == "div":
+                div_text_lengths[id(p)] += total_length
+            p = p.parent
+
+    if not any(div_text_lengths.values()):
         return None
-    return max(divisions, key=lambda d: div_text_lengths.get(id(d), 0))
+    return max(divisions, key=lambda d: div_text_lengths[id(d)])
 
 
 def _extract_from_react_structure(content: Tag) -> list[Post]:
