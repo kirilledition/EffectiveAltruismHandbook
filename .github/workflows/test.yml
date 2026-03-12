@@ -103,7 +103,7 @@ jobs:
       - name: Verify output file sizes
         run: |
           for ext in epub pdf; do
-            file="dist/sample.${ext}"
+            file="dist/eahandbookcompiler.${ext}"
             if [ ! -f "$file" ]; then
               echo "ERROR: $file was not generated"
               exit 1

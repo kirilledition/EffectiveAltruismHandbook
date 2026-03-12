@@ -281,20 +281,16 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
     if not dummy_css.exists():
         dummy_css.write_text("/* Custom EPUB CSS */\n", encoding="utf-8")
 
-    # Security Enhancement: Use --sandbox to mitigate risks when processing untrusted input.
-    # --resource-path is required so pandoc can locate the CSS file in sandbox mode.
     subprocess.run(
         [
             pandoc,
-            "--sandbox",
-            f"--resource-path={output_path.parent}",
             str(markdown_path),
             "--from=markdown",
             "--to=epub3",
             f"--output={output_path}",
             "--toc-depth=2",
             "--split-level=2",
-            f"--css={dummy_css.name}",
+            f"--css={dummy_css}",
         ],
         check=True,
     )
@@ -324,12 +320,8 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
 
     pdf_engine = "weasyprint" if shutil.which("weasyprint") else "pdflatex"
 
-    # Security Enhancement: Use --sandbox to mitigate risks when processing untrusted input.
-    # --resource-path is required so pandoc can locate the CSS file in sandbox mode.
     cmd = [
         pandoc,
-        "--sandbox",
-        f"--resource-path={output_path.parent}",
         str(markdown_path),
         "--from=markdown",
         "--to=pdf",
@@ -341,7 +333,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
     if pdf_engine == "weasyprint":
         pdf_css = output_path.parent / "pdf.css"
         pdf_css.write_text(PDF_CSS, encoding="utf-8")
-        cmd.append(f"--css={pdf_css.name}")
+        cmd.append(f"--css={pdf_css}")
 
     subprocess.run(cmd, check=True)
     return output_path
