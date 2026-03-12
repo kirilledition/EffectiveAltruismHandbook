@@ -302,8 +302,14 @@ def extract_author_json_ld(soup: BeautifulSoup) -> str:
         Author name, or an empty string if not found.
     """
     for script in soup.find_all("script", type="application/ld+json"):
+        # ⚡ Bolt Optimization: Use fast string check before full JSON decode overhead.
+        # Structured data can be large; decoding it only to discard it is slow.
+        s = script.string or ""
+        if '"author"' not in s:
+            continue
+
         try:
-            data = json.loads(script.string or "")
+            data = json.loads(s)
         except (json.JSONDecodeError, TypeError):  # fmt: skip
             continue
         if not isinstance(data, dict):
@@ -375,8 +381,13 @@ def extract_date(soup: BeautifulSoup) -> str:
         ISO date string (YYYY-MM-DD), or an empty string if not found.
     """
     for script in soup.find_all("script", type="application/ld+json"):
+        # ⚡ Bolt Optimization: Fast string check before parsing JSON.
+        s = script.string or ""
+        if '"datePublished"' not in s and '"dateCreated"' not in s:
+            continue
+
         try:
-            data = json.loads(script.string or "")
+            data = json.loads(s)
             if isinstance(data, dict):
                 for key in ("datePublished", "dateCreated"):
                     date_str = data.get(key, "")
