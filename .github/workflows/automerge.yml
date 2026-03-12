@@ -11,6 +11,16 @@ name: Auto-merge
 on:
   check_suite:
     types: [completed]
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - reopened
+      - unlocked
+  pull_request_review:
+    types: [submitted]
+  status: {}
 
 permissions:
   contents: write
