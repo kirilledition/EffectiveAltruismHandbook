@@ -32,3 +32,6 @@
 
 2024-05-24
 When optimizing BeautifulSoup document traversals involving multiple `find_all()` calls, consolidate them into fewer passes using a combined list of tags (e.g., `soup.find_all(['nav', 'div', 'a'])`). This reduces O(N) full-document scans. Define the tag lists as module-level collections (like `frozenset` or `list`) to avoid redundant memory allocation.
+## 2026-03-12 - Pre-filtering JSON-LD with string checks
+**Learning:** Parsing JSON-LD scripts in a loop with `json.loads()` is extremely slow when most scripts don't contain the target data. Adding a fast-path string check (e.g., `if '"author"' not in s:`) before decoding bypasses unnecessary overhead and significantly speeds up processing.
+**Action:** Always pre-filter large JSON strings using fast substring checks before invoking expensive JSON decoding in performance-critical loops.
