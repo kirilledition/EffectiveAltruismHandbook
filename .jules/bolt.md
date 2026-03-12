@@ -29,3 +29,11 @@
 ## 2025-03-09 - Skipping unconditional lstrip allocations in loops
 **Learning:** Using `line.lstrip()` unconditionally at the top of a text-processing loop creates a new string object and allocates memory for every single line. In loops traversing many lines (like large Markdown files), this causes significant overhead. We can bypass this by checking `if line[0] == "#"` or `if "`" in line` before calling `.lstrip()`, taking the fast path and avoiding allocation ~90% of the time, resulting in a ~35% speed improvement.
 **Action:** When iterating over thousands of lines in Python, use fast-path boolean checks (like exact character indices `line[0]` or the `in` operator) to filter lines before applying operations that allocate new strings, like `.lstrip()`, `.replace()`, or `.lower()`.
+
+## 2024-06-18: Optimized BeautifulSoup DOM Traversal
+
+When computing accumulated string lengths for nested HTML elements (e.g. finding the `div` with the most text):
+1. **Avoid redundant parent chain traversal**: Traversing up the `.parent` chain for *every* individual string node causes `O(N * D)` complexity (where `N` is text nodes and `D` is depth), resulting in massive redundant tree walking for sibling text nodes.
+2. **Avoid hashing BeautifulSoup `Tag` objects**: Using a bs4 `Tag` object as a dictionary key or in a set triggers its custom `__eq__` and `__hash__` methods, which can recursively traverse the DOM and cause massive slowdowns. Always use `id(tag)` as the dictionary key and store the `Tag` reference in a secondary dictionary if needed.
+3. **Pre-allocate length accumulators**: Pre-allocating accumulator dictionaries (e.g., `{id(div): 0 for div in soup.find_all("div")}`) avoids the overhead of `.get(key, 0) + val` checks in hot loops.
+4. **Group by immediate parent**: A ~8.7x speedup on deep nested DOMs was achieved by first accumulating sibling text node lengths into a `parent_lengths` dictionary using `id(text_node.parent)`, and then traversing up the DOM chain *only once* per unique parent tag.
