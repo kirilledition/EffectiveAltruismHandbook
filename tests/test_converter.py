@@ -70,6 +70,17 @@ Some text.
 #### Heading 2"""
         assert demote_headings(text, levels=2) == expected
 
+    def test_demotes_headings_with_leading_spaces(self):
+        """ATX headings may have 0-3 leading spaces per CommonMark."""
+        text = " # One space\n  ## Two spaces\n   ### Three spaces"
+        expected = " ### One space\n  #### Two spaces\n   ##### Three spaces"
+        assert demote_headings(text, levels=2) == expected
+
+    def test_four_leading_spaces_not_demoted(self):
+        """Four leading spaces make a line an indented code block, not a heading."""
+        text = "    # Not a heading"
+        assert demote_headings(text, levels=2) == "    # Not a heading"
+
 
 class TestRequirePandocErrorPath:
     @patch("shutil.which")

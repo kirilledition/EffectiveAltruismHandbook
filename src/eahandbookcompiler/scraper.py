@@ -6,6 +6,7 @@ import hashlib
 import html
 import json
 import re
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -34,6 +35,12 @@ LARGE_SEQ_TITLE_RE = re.compile(r"LargeSequencesItem-titleAndAuthor")
 LARGE_SEQ_RIGHT_RE = re.compile(r"LargeSequencesItem-right")
 CONTENT_CLASS_RE = re.compile(r"(?i)content")
 TOC_CLASS_RE = re.compile(r"(?i)tableofcontents")
+
+# Thread-local storage for per-thread sessions in the concurrent scraper.
+# Each worker thread lazily creates exactly one ``requests.Session`` via
+# ``make_session()`` and reuses it for every post it processes, enabling
+# proper HTTP connection pooling within each thread.
+_thread_local = threading.local()
 
 
 @dataclass
@@ -133,6 +140,15 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
         raise requests.TooManyRedirects(f"Exceeded maximum redirects for {url}")
 
     response.raise_for_status()
+
+    # Reject non-HTML responses to avoid processing large binary files
+    # (e.g. if the server redirects to an asset CDN).
+    content_type = response.headers.get("Content-Type", "")
+    if content_type:
+        mime = content_type.split(";")[0].strip().lower()
+        if mime not in ("text/html", "application/xhtml+xml"):
+            raise ValueError(f"Unexpected Content-Type for {current_url}: {content_type}")
+
     return BeautifulSoup(response.text, "lxml")
 
 
@@ -617,16 +633,26 @@ def _save_post_to_cache(cache_path: Path, post: Post) -> None:
 
 def _process_single_post(
     post: Post,
-    session: requests.Session,
+    session: requests.Session | None,
     cache_dir: Path | None,
 ) -> None:
     """Fetch and populate a single post, using cache when available.
 
+    When *session* is ``None`` (concurrent mode) a thread-local session
+    is lazily created so that each worker thread opens exactly one
+    ``requests.Session`` and reuses it for connection pooling.
+
     Args:
         post: Post stub to populate with content.
-        session: Active requests session.
+        session: Active requests session, or ``None`` to use a
+            thread-local session.
         cache_dir: Optional cache directory for post data.
     """
+    if session is None:
+        if not hasattr(_thread_local, "session"):
+            _thread_local.session = make_session()
+        session = _thread_local.session
+
     if cache_dir is not None:
         url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
         cache_path = cache_dir / f"{url_hash}.json"
@@ -688,11 +714,26 @@ def scrape_all(
     handbook = Handbook(posts=posts)
 
     if max_workers > 1:
-        _scrape_posts_concurrent(handbook.posts, cache_dir, max_workers, verbose=verbose)
+        _scrape_posts_concurrent(handbook.posts, cache_dir, max_workers, delay=delay, verbose=verbose)
     else:
         _scrape_posts_sequential(handbook.posts, session, cache_dir, delay, verbose=verbose)
 
     return handbook
+
+
+def _truncate_title(item: str | Post | None) -> str:
+    """Safely extract and truncate a post title for the progress bar."""
+    if not item:
+        return ""
+    max_length = 35
+    title = item.title if isinstance(item, Post) else str(item)
+    return f"{title[:max_length]}…" if len(title) > max_length else title
+
+
+def _get_item_from_bar(item: Post | str | None) -> Post:
+    """Extract a Post from the progress bar item for type checking."""
+    # This is a safe cast because click.progressbar yields the items from the original list
+    return item  # type: ignore[return-value]
 
 
 def _scrape_posts_sequential(
@@ -706,8 +747,9 @@ def _scrape_posts_sequential(
     """Download posts one at a time with a polite delay."""
     total = len(posts)
     if not verbose:
-        with click.progressbar(posts, label="Scraping posts") as bar:
-            for i, post in enumerate(bar, 1):
+        with click.progressbar(posts, label="Scraping posts", item_show_func=_truncate_title) as bar:
+            for i, item in enumerate(bar, 1):
+                post = _get_item_from_bar(item)
                 _process_single_post(post, session, cache_dir)
                 if i < total:
                     time.sleep(delay)
@@ -723,27 +765,37 @@ def _scrape_posts_concurrent(
     posts: list[Post],
     cache_dir: Path | None,
     max_workers: int,
+    delay: float = REQUEST_DELAY,
     *,
     verbose: bool = False,
 ) -> None:
     """Download posts concurrently using a thread pool.
 
-    Each worker thread creates its own ``requests.Session`` via
-    ``make_session()`` because ``Session`` objects are not thread-safe.
+    Each worker thread lazily creates its own ``requests.Session`` via
+    thread-local storage so that ``Session`` objects are not shared
+    across threads and connection pooling works within each thread.
+
+    A per-request *delay* is enforced after every HTTP request to
+    throttle traffic and avoid triggering server-side rate limits.
 
     Progress messages may appear out of order since tasks complete
     at different times.
     """
     total = len(posts)
+
+    def _worker(post: Post) -> None:
+        _process_single_post(post, None, cache_dir)
+        if delay > 0:
+            time.sleep(delay)
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_index = {
-            executor.submit(_process_single_post, post, make_session(), cache_dir): i for i, post in enumerate(posts)
-        }
+        future_to_index = {executor.submit(_worker, post): i for i, post in enumerate(posts)}
         if not verbose:
-            with click.progressbar(length=total, label="Scraping posts") as bar:
+            with click.progressbar(length=total, label="Scraping posts", item_show_func=_truncate_title) as bar:
                 for future in as_completed(future_to_index):
+                    idx = future_to_index[future]
                     future.result()  # propagate exceptions
-                    bar.update(1)
+                    bar.update(1, current_item=posts[idx].title)
         else:
             for future in as_completed(future_to_index):
                 idx = future_to_index[future]
