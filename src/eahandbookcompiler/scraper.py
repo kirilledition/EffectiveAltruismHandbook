@@ -665,6 +665,23 @@ def _process_single_post(
         _save_post_to_cache(cache_path, post)
 
 
+def _fetch_index_with_progress(session: requests.Session, verbose: bool) -> list[Post]:
+    """Fetch the handbook index with appropriate progress output."""
+    if verbose:
+        click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
+        return scrape_handbook_index(session)
+
+    click.secho("Fetching handbook index... ", fg="blue", nl=False)
+    try:
+        posts = scrape_handbook_index(session)
+    except Exception:
+        click.secho("Failed.", fg="red")
+        raise
+    else:
+        click.secho("Done.", fg="green")
+        return posts
+
+
 def scrape_all(
     session: requests.Session | None = None,
     delay: float = REQUEST_DELAY,
@@ -692,18 +709,7 @@ def scrape_all(
     if session is None:
         session = make_session()
 
-    if verbose:
-        click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
-        posts = scrape_handbook_index(session)
-    else:
-        click.secho("Fetching handbook index... ", fg="blue", nl=False)
-        try:
-            posts = scrape_handbook_index(session)
-        except Exception:
-            click.secho("Failed.", fg="red")
-            raise
-        else:
-            click.secho("Done.", fg="green")
+    posts = _fetch_index_with_progress(session, verbose)
 
     if verbose:
         click.echo(f"Found {len(posts)} posts. Fetching content …")
