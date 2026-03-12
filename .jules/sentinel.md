@@ -17,3 +17,8 @@
 **Vulnerability:** A critical SSRF bypass vulnerability was present in the scraper due to using `urllib.parse.urlparse().netloc.split(":")[0]` instead of `parsed.hostname` to validate target domains. A domain string could include `userinfo` (like `http://effectivealtruism.org@evil.com`), tricking `netloc.split(":")[0]` into reading `effectivealtruism.org` while actual outbound requests hit `evil.com`.
 **Learning:** `netloc` contains both `userinfo` and `port` info, making it vulnerable to such spoofing. Validation logic needs the actual domain without other URL components.
 **Prevention:** Always use `urllib.parse.urlparse().hostname` (with an `or ""` fallback) instead of parsing `.netloc` manually to avoid SSRF vulnerabilities when verifying URLs.
+
+## 2026-03-12 - Prevent XSS Payload Persistence via Data Attribute in Compiled Books
+**Vulnerability:** XSS payload persistence in compiled EPUB/PDF formats via the insecure `data` attribute. While `href` and `src` were sanitized against `javascript:` and `data:` schemes, the `data` attribute in tags like `<object>` was left unsanitized, providing an alternate avenue for payload smuggling.
+**Learning:** Sanitization logic targeting malicious protocols must apply universally to all attributes that can dictate resource execution, not just the most common ones like `href` and `src`.
+**Prevention:** Always include `data` in the list of attributes to sanitize when stripping malicious schemes like `javascript:` and `data:` from untrusted HTML source.
