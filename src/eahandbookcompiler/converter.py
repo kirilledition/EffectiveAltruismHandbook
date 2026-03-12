@@ -161,6 +161,29 @@ def handbook_to_markdown(
 
 CODE_BLOCK_RE = re.compile(r"^(```|~~~)")
 
+# CommonMark allows up to 3 leading spaces before ATX headings.
+_MAX_HEADING_INDENT = 3
+
+
+def _demote_line(line: str, levels: int) -> str | None:
+    """Return the demoted heading line, or ``None`` if *line* is not a heading."""
+    first = line[0]
+    if not (first == "#" or (first == " " and "#" in line[1:4])):
+        return None
+
+    stripped = line.lstrip(" ")
+    leading_spaces = len(line) - len(stripped)
+    if leading_spaces > _MAX_HEADING_INDENT or not stripped.startswith("#"):
+        return None
+
+    stripped_hashes = stripped.lstrip("#")
+    if not stripped_hashes or not stripped_hashes.startswith(" "):
+        return None
+
+    existing_hashes = len(stripped) - len(stripped_hashes)
+    new_level = min(existing_hashes + levels, 6)
+    return " " * leading_spaces + "#" * new_level + stripped_hashes
+
 
 def demote_headings(text: str, levels: int = 2) -> str:
     """Increase all ATX heading levels by *levels*, ignoring code blocks.
@@ -191,12 +214,11 @@ def demote_headings(text: str, levels: int = 2) -> str:
         # documents. Since most lines don't contain headings or code blocks, we can bypass
         # `lstrip()` allocation completely with fast string checks,
         # speeding up this function by ~35%.
-        if not in_code_block and line.startswith("#"):
-            stripped_hashes = line.lstrip("#")
-            if stripped_hashes and stripped_hashes.startswith(" "):
-                existing_hashes = len(line) - len(stripped_hashes)
-                new_level = min(existing_hashes + levels, 6)
-                result.append("#" * new_level + stripped_hashes)
+        # Per CommonMark, ATX headings may have 0-3 leading spaces before the first `#`.
+        if not in_code_block:
+            demoted = _demote_line(line, levels)
+            if demoted is not None:
+                result.append(demoted)
                 continue
 
         # Use fast `in` check before performing exact boundary matching
