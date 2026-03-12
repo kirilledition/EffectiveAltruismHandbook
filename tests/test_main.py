@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import click
 from click.testing import CliRunner
 
 from eahandbookcompiler.main import build, cli, convert, scrape
@@ -144,7 +145,7 @@ def test_convert_file_not_found():
 @patch("eahandbookcompiler.main.scrape_all")
 def test_build_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
-    mock_handbook_to_markdown.side_effect = RuntimeError("write error")
+    mock_handbook_to_markdown.side_effect = click.ClickException("write error")
 
     runner = CliRunner()
     result = runner.invoke(build, ["--output-dir", "dist"])
@@ -159,7 +160,7 @@ def test_build_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
 def test_build_epub_failure(mock_scrape_all, mock_handbook_to_markdown, mock_convert_to_epub):
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
     mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
-    mock_convert_to_epub.side_effect = RuntimeError("epub error")
+    mock_convert_to_epub.side_effect = click.ClickException("epub error")
 
     runner = CliRunner()
     result = runner.invoke(build, ["--output-dir", "dist"])
@@ -176,7 +177,7 @@ def test_build_pdf_failure(mock_scrape_all, mock_handbook_to_markdown, mock_conv
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
     mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
     mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
-    mock_convert_to_pdf.side_effect = RuntimeError("pdf error")
+    mock_convert_to_pdf.side_effect = click.ClickException("pdf error")
 
     runner = CliRunner()
     result = runner.invoke(build, ["--output-dir", "dist"])
@@ -187,7 +188,7 @@ def test_build_pdf_failure(mock_scrape_all, mock_handbook_to_markdown, mock_conv
 
 @patch("eahandbookcompiler.main.convert_to_epub")
 def test_convert_epub_failure(mock_convert_to_epub):
-    mock_convert_to_epub.side_effect = RuntimeError("epub error")
+    mock_convert_to_epub.side_effect = click.ClickException("epub error")
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -202,7 +203,7 @@ def test_convert_epub_failure(mock_convert_to_epub):
 @patch("eahandbookcompiler.main.convert_to_epub")
 def test_convert_pdf_failure(mock_convert_to_epub, mock_convert_to_pdf):
     mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
-    mock_convert_to_pdf.side_effect = RuntimeError("pdf error")
+    mock_convert_to_pdf.side_effect = click.ClickException("pdf error")
 
     runner = CliRunner()
     with runner.isolated_filesystem():

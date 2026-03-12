@@ -719,9 +719,9 @@ def scrape_all(
         click.secho("Fetching handbook index... ", fg="blue", nl=False)
         try:
             posts = scrape_handbook_index(session)
-        except Exception:
+        except Exception as e:
             click.secho("Failed.", fg="red")
-            raise
+            raise click.ClickException(str(e)) from e
         else:
             click.secho("Done.", fg="green")
 
