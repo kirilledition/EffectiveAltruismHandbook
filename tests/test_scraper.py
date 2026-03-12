@@ -1356,10 +1356,10 @@ class TestScrapeAllFallbacks:
     @patch("eahandbookcompiler.scraper.scrape_handbook_index")
     def test_scrape_all_non_verbose_index_error(self, mock_scrape_index, capsys):
         """When not verbose and scrape_handbook_index raises an Exception, 'Failed.' is printed."""
-        mock_scrape_index.side_effect = Exception("Test exception")
+        mock_scrape_index.side_effect = RuntimeError("Test exception")
 
         session = MagicMock()
-        with pytest.raises(Exception, match="Test exception"):
+        with pytest.raises(RuntimeError, match="Test exception"):
             scrape_all(session=session, delay=0, max_workers=1, verbose=False)
 
         captured = capsys.readouterr()
