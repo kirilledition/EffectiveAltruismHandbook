@@ -623,6 +623,7 @@ class TestConvertToEpub:
             [
                 "/usr/bin/pandoc",
                 "--sandbox",
+                f"--resource-path={test_output_path.parent}",
                 str(markdown_path),
                 "--from=markdown",
                 "--to=epub3",
@@ -650,6 +651,7 @@ class TestConvertToPdf:
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert "--sandbox" in args
+        assert f"--resource-path={test_output_path.parent}" in args
 
 
 class TestFetchRedirects:
