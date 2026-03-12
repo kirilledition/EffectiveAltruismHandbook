@@ -973,6 +973,46 @@ class TestExtractFromHeadingStructure:
 
 
 class TestExtractPostsFromContent:
+    def test_delegates_to_react_structure_when_available(self):
+        from unittest.mock import MagicMock, patch
+
+        from eahandbookcompiler.scraper import extract_posts_from_content
+
+        mock_content = MagicMock()
+        expected_posts = [MagicMock()]
+
+        with (
+            patch(
+                "eahandbookcompiler.scraper._extract_from_react_structure", return_value=expected_posts
+            ) as mock_react,
+            patch("eahandbookcompiler.scraper._extract_from_heading_structure") as mock_heading,
+        ):
+            posts = extract_posts_from_content(mock_content)
+
+            assert posts == expected_posts
+            mock_react.assert_called_once_with(mock_content)
+            mock_heading.assert_not_called()
+
+    def test_delegates_to_heading_structure_as_fallback(self):
+        from unittest.mock import MagicMock, patch
+
+        from eahandbookcompiler.scraper import extract_posts_from_content
+
+        mock_content = MagicMock()
+        expected_posts = [MagicMock()]
+
+        with (
+            patch("eahandbookcompiler.scraper._extract_from_react_structure", return_value=[]) as mock_react,
+            patch(
+                "eahandbookcompiler.scraper._extract_from_heading_structure", return_value=expected_posts
+            ) as mock_heading,
+        ):
+            posts = extract_posts_from_content(mock_content)
+
+            assert posts == expected_posts
+            mock_react.assert_called_once_with(mock_content)
+            mock_heading.assert_called_once_with(mock_content)
+
     def test_prefers_react_structure(self):
         from eahandbookcompiler.scraper import extract_posts_from_content
 
