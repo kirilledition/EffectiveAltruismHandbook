@@ -219,8 +219,8 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901
                 elif COMMENTS_CLASS_RE.search(classes):
                     element.decompose()
         elif tag_name in _SANITIZE_TAGS:
-            # Security Enhancement: Sanitize 'href' and 'src' to prevent XSS persistence in PDF/EPUB.
-            for attr in ("href", "src"):
+            # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
+            for attr in ("href", "src", "data"):
                 val = element.get(attr)
                 if val and isinstance(val, str):
                     cleaned_val = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
