@@ -891,6 +891,31 @@ class TestExtractDateJsonLd:
         soup = BeautifulSoup(html, "lxml")
         assert extract_date(soup) == "2021-01-01"
 
+    def test_json_ld_type_error_skipped(self):
+        # script.string is None when there are inner tags or no content, falling back to json.loads("")
+        html = (
+            '<html><head><script type="application/ld+json"></script></head>'
+            '<body><time datetime="2021-02-02T00:00:00Z">Feb 2</time></body></html>'
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-02-02"
+
+    def test_json_ld_non_dict_skipped(self):
+        html = (
+            '<html><head><script type="application/ld+json">["2023-01-01"]</script></head>'
+            '<body><time datetime="2021-03-03T00:00:00Z">Mar 3</time></body></html>'
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-03-03"
+
+    def test_json_ld_json_decode_error_skipped(self):
+        html = (
+            '<html><head><script type="application/ld+json">{"datePublished": "missing quotes}</script></head>'
+            '<body><time datetime="2021-04-04T00:00:00Z">Apr 4</time></body></html>'
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-04-04"
+
     def test_meta_date_published(self):
         html = '<html><head><meta property="datePublished" content="2024-07-01T00:00:00Z"></head><body></body></html>'
         soup = BeautifulSoup(html, "lxml")
