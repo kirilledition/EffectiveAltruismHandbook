@@ -93,27 +93,27 @@ def build(
             commit_hash=commit_hash,
             repo_url=repo_url,
         )
-    except Exception:
+    except Exception as e:
         click.secho("Failed.", fg="red")
-        raise
+        raise click.ClickException(str(e)) from e
     else:
         click.secho("Done.", fg="green")
 
     click.secho("Building epub... ", fg="blue", nl=False)
     try:
         epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
-    except Exception:
+    except Exception as e:
         click.secho("Failed.", fg="red")
-        raise
+        raise click.ClickException(str(e)) from e
     else:
         click.secho("Done.", fg="green")
 
     click.secho("Building pdf... ", fg="blue", nl=False)
     try:
         pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
-    except Exception:
+    except Exception as e:
         click.secho("Failed.", fg="red")
-        raise
+        raise click.ClickException(str(e)) from e
     else:
         click.secho("Done.", fg="green")
 
@@ -229,9 +229,9 @@ def convert(markdown_file: str, output_dir: str) -> None:
             markdown_path,
             output_path / "eahandbookcompiler.epub",
         )
-    except Exception:
+    except Exception as e:
         click.secho("Failed.", fg="red")
-        raise
+        raise click.ClickException(str(e)) from e
     else:
         click.secho("Done.", fg="green")
 
@@ -241,9 +241,9 @@ def convert(markdown_file: str, output_dir: str) -> None:
             markdown_path,
             output_path / "eahandbookcompiler.pdf",
         )
-    except Exception:
+    except Exception as e:
         click.secho("Failed.", fg="red")
-        raise
+        raise click.ClickException(str(e)) from e
     else:
         click.secho("Done.", fg="green")
 
