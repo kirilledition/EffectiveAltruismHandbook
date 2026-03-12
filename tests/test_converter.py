@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import shutil
 from unittest.mock import patch
 
 import pytest
 
 from eahandbookcompiler.converter import PDF_CSS, demote_headings, require_pandoc
 from eahandbookcompiler.scraper import Handbook, Post
-
-_PANDOC_AVAILABLE = shutil.which("pandoc") is not None
-_WEASYPRINT_AVAILABLE = shutil.which("weasyprint") is not None
 
 
 class TestDemoteHeadingsCodeBlocks:
@@ -169,46 +165,3 @@ class TestBuildAll:
         assert result["markdown"].exists()
         mock_epub.assert_called_once()
         mock_pdf.assert_called_once()
-
-
-@pytest.mark.integration
-class TestEbookGeneration:
-    """Integration tests that run the real pandoc/weasyprint pipeline."""
-
-    @pytest.fixture
-    def sample_markdown(self, tmp_path):
-        md = tmp_path / "book.md"
-        md.write_text(
-            "---\n"
-            "title: Test Book\n"
-            "author: Test Author\n"
-            "language: en\n"
-            "---\n\n"
-            "# Chapter One\n\n"
-            "Hello, world.\n\n"
-            "## Section A\n\n"
-            "Some content here.\n",
-            encoding="utf-8",
-        )
-        return md
-
-    @pytest.mark.skipif(not _PANDOC_AVAILABLE, reason="pandoc not installed")
-    def test_epub_generation(self, sample_markdown, tmp_path):
-        from eahandbookcompiler.converter import convert_to_epub
-
-        output = tmp_path / "test.epub"
-        result = convert_to_epub(sample_markdown, output)
-        assert result.exists()
-        assert result.stat().st_size > 0
-
-    @pytest.mark.skipif(
-        not (_PANDOC_AVAILABLE and _WEASYPRINT_AVAILABLE),
-        reason="pandoc and/or weasyprint not installed",
-    )
-    def test_pdf_generation(self, sample_markdown, tmp_path):
-        from eahandbookcompiler.converter import convert_to_pdf
-
-        output = tmp_path / "test.pdf"
-        result = convert_to_pdf(sample_markdown, output)
-        assert result.exists()
-        assert result.stat().st_size > 0

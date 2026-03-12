@@ -26,7 +26,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Pytest with Coverage
-        run: uv run pytest -m "not integration" --cov=eahandbookcompiler --cov-report=xml --cov-report=term
+        run: uv run pytest --cov=eahandbookcompiler --cov-report=xml --cov-report=term
 
       - name: Extract Coverage Percentage
         if: github.ref == 'refs/heads/main'
@@ -71,12 +71,48 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync
 
       - name: Install pandoc, weasyprint, and Liberation Sans font
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends pandoc weasyprint fonts-liberation
 
-      - name: Run ebook generation tests
-        run: uv run pytest -m integration -v
+      - name: Generate sample markdown
+        run: |
+          mkdir -p dist
+          cat > dist/sample.md << 'EOF'
+          ---
+          title: Test Book
+          author: Test Author
+          language: en
+          ---
+
+          # Chapter One
+
+          Hello, world.
+
+          ## Section A
+
+          Some content here with enough text to produce a reasonable file.
+          EOF
+
+      - name: Convert to EPUB and PDF
+        run: uv run python -m eahandbookcompiler convert dist/sample.md --output-dir dist
+
+      - name: Verify output file sizes
+        run: |
+          for ext in epub pdf; do
+            file="dist/sample.${ext}"
+            if [ ! -f "$file" ]; then
+              echo "ERROR: $file was not generated"
+              exit 1
+            fi
+            size=$(stat --format=%s "$file")
+            echo "$file: ${size} bytes"
+            if [ "$size" -lt 1000 ]; then
+              echo "ERROR: $file is suspiciously small (${size} bytes)"
+              exit 1
+            fi
+          done
+          echo "All ebook files generated successfully with reasonable sizes."

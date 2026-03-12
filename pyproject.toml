@@ -31,7 +31,6 @@ eahandbookcompiler = "eahandbookcompiler.main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: tests requiring external tools (pandoc, weasyprint)"]
 
 [tool.ruff]
 target-version = "py314"
