@@ -101,6 +101,7 @@ jobs:
         run: uv run python -m eahandbookcompiler convert dist/sample.md --output-dir dist
 
       - name: Verify output file sizes
+        # The 'convert' CLI command always outputs to eahandbookcompiler.{epub,pdf}
         run: |
           for ext in epub pdf; do
             file="dist/eahandbookcompiler.${ext}"

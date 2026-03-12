@@ -638,7 +638,7 @@ class TestConvertToEpub:
 class TestConvertToPdf:
     @patch("eahandbookcompiler.converter.subprocess.run")
     @patch("eahandbookcompiler.converter.shutil.which")
-    def test_convert_to_pdf_weasyprint(self, mock_which, mock_run, tmp_path):
+    def test_convert_to_pdf_command(self, mock_which, mock_run, tmp_path):
         # Mocking which: first call is for pandoc, second is for weasyprint
         mock_which.side_effect = ["/usr/bin/pandoc", "/usr/bin/weasyprint"]
         markdown_path = tmp_path / "test.markdown"
