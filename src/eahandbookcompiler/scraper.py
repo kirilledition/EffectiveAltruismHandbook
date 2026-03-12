@@ -759,9 +759,8 @@ def _scrape_posts_concurrent(
             with click.progressbar(length=total, label="Scraping posts", item_show_func=_truncate_title) as bar:
                 for future in as_completed(future_to_index):
                     idx = future_to_index[future]
-                    bar.current_item = posts[idx].title
                     future.result()  # propagate exceptions
-                    bar.update(1)
+                    bar.update(1, current_item=posts[idx].title)
         else:
             for future in as_completed(future_to_index):
                 idx = future_to_index[future]
