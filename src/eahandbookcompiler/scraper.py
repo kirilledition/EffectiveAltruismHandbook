@@ -628,6 +628,7 @@ def _save_post_to_cache(cache_path: Path, post: Post) -> None:
                 indent=2,
             )
     except OSError:
+        # Cache writes are opportunistic; ignore failures (e.g. read-only filesystem).
         pass
 
 
