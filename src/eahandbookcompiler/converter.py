@@ -294,7 +294,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
             f"--output={output_path}",
             "--toc-depth=2",
             "--split-level=2",
-            f"--css={dummy_css}",
+            f"--css={dummy_css.name}",
         ],
         check=True,
     )
@@ -341,7 +341,7 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
     if pdf_engine == "weasyprint":
         pdf_css = output_path.parent / "pdf.css"
         pdf_css.write_text(PDF_CSS, encoding="utf-8")
-        cmd.append(f"--css={pdf_css}")
+        cmd.append(f"--css={pdf_css.name}")
 
     subprocess.run(cmd, check=True)
     return output_path

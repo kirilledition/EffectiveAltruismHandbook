@@ -630,7 +630,7 @@ class TestConvertToEpub:
                 f"--output={test_output_path}",
                 "--toc-depth=2",
                 "--split-level=2",
-                f"--css={test_output_path.parent / 'epub.css'}",
+                "--css=epub.css",
             ],
             check=True,
         )
