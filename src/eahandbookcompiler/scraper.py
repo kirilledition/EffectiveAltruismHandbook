@@ -411,7 +411,7 @@ def extract_date(soup: BeautifulSoup) -> str:
     return ""
 
 
-def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
+def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:  # noqa: C901
     """Find the ``<div>`` with the most text content.
 
     Used as a last-resort heuristic when no known post-body selector
@@ -426,19 +426,40 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:
     divisions = soup.find_all("div")
     if not divisions:
         return None
-    div_text_lengths: dict[int, int] = {}
+
+    # ⚡ Bolt Optimization: Group text lengths by immediate parent tag first.
+    # Instead of walking up the entire parent chain for *every single text node*
+    # (which takes O(N*Depth) time), we accumulate lengths at the immediate parent
+    # level in O(N), then propagate those sums up the tree just once per parent tag,
+    # reducing redundant DOM traversals.
+    parent_lengths: dict[int, int] = {}
+    parent_tags: dict[int, Tag] = {}
+
     for text_node in soup.find_all(string=True):
-        if isinstance(text_node, Comment):
-            continue
-        length = len(text_node)
-        if length == 0:
-            continue
-        parent = text_node.parent
-        while parent is not None:
-            if parent.name == "div":
-                div_id = id(parent)
-                div_text_lengths[div_id] = div_text_lengths.get(div_id, 0) + length
-            parent = parent.parent
+        # type() is faster than isinstance()
+        if type(text_node) is not Comment:
+            length = len(text_node)
+            if length:
+                p = text_node.parent
+                if p is not None:
+                    pid = id(p)
+                    try:
+                        parent_lengths[pid] += length
+                    except KeyError:
+                        parent_lengths[pid] = length
+                        parent_tags[pid] = p
+
+    div_text_lengths: dict[int, int] = {}
+    for pid, total_len in parent_lengths.items():
+        curr = parent_tags[pid]
+        while curr is not None:
+            if curr.name == "div":
+                try:
+                    div_text_lengths[id(curr)] += total_len
+                except KeyError:
+                    div_text_lengths[id(curr)] = total_len
+            curr = curr.parent
+
     if not div_text_lengths:
         return None
     return max(divisions, key=lambda d: div_text_lengths.get(id(d), 0))

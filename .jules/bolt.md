@@ -35,3 +35,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2026-03-12 - Pre-filtering JSON-LD with string checks
 **Learning:** Parsing JSON-LD scripts in a loop with `json.loads()` is extremely slow when most scripts don't contain the target data. Adding a fast-path string check (e.g., `if '"author"' not in s:`) before decoding bypasses unnecessary overhead and significantly speeds up processing.
 **Action:** Always pre-filter large JSON strings using fast substring checks before invoking expensive JSON decoding in performance-critical loops.
+
+## 2025-03-09 - BeautifulSoup text length by parent tag
+**Learning:** To optimize text length calculations across deeply nested DOM trees, iterating over `soup.find_all(string=True)` and walking up the `.parent` chain for *every individual text node* results in $O(N \times Depth)$ time complexity. Grouping text node lengths by their immediate parent tag's ID first (in $O(N)$), and then propagating the accumulated sums up the tree just once per parent tag, significantly reduces redundant DOM traversals.
+**Action:** When calculating aggregated structural values from text nodes up the DOM tree, always aggregate by the immediate parent element before traversing ancestors to avoid redundant full-path walks.
