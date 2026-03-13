@@ -852,6 +852,33 @@ class TestExtractAuthorJsonLdEdgeCases:
         soup = BeautifulSoup(html, "lxml")
         assert extract_author_json_ld(soup) == "Jane Author"
 
+    def test_type_error_continues_to_next_script(self):
+
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            "<html><head>"
+            '<script type="application/ld+json"><p>invalid child to force None string</p></script>'
+            '<script type="application/ld+json">'
+            '{"author": "Jane Author"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        # soup.find("script").string evaluates to None since there is a child tag
+        assert extract_author_json_ld(soup) == "Jane Author"
+
+    def test_invalid_json_continues_to_next_script(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            '<html><head><script type="application/ld+json">bad json</script>'
+            '<script type="application/ld+json">'
+            '{"author": "Jane Author"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == "Jane Author"
+
     def test_dict_author_without_name(self):
         from eahandbookcompiler.scraper import extract_author_json_ld
 
@@ -882,6 +909,27 @@ class TestExtractDateJsonLd:
         )
         soup = BeautifulSoup(html, "lxml")
         assert extract_date(soup) == "2022-11-15"
+
+    def test_json_ld_type_error_continues_to_next_script(self):
+        html = (
+            "<html><head>"
+            '<script type="application/ld+json"><p>invalid child to force None string</p></script>'
+            '<script type="application/ld+json">'
+            '{"datePublished": "2023-05-20T10:00:00Z"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2023-05-20"
+
+    def test_json_ld_invalid_json_continues_to_next_script(self):
+        html = (
+            '<html><head><script type="application/ld+json">bad json</script>'
+            '<script type="application/ld+json">'
+            '{"datePublished": "2023-05-20T10:00:00Z"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2023-05-20"
 
     def test_json_ld_invalid_json_skipped(self):
         html = (
