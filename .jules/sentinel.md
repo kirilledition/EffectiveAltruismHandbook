@@ -1,24 +1,4 @@
-## 2025-03-05 - Prevent XSS Payload Persistence in Compiled Books
-**Vulnerability:** XSS payload persistence in compiled EPUB/PDF formats via insecure `href` and `src` attributes. The HTML-to-Markdown conversion logic was blindly trusting attribute values, meaning `javascript:` links and `data:` URIs could be smuggled through to the final document where a PDF/EPUB reader might inadvertently execute them.
-**Learning:** Even when converting to non-browser formats like Markdown or PDF, malicious URIs must be sanitized. If left intact, the target compilation tools or readers may unsafely process `javascript:` or `data:` URIs, leading to Stored XSS or similar execution vulnerabilities when a user interacts with the final compiled eBook.
-**Prevention:** Always sanitize link (`href`) and image (`src`) attributes by stripping or invalidating `javascript:` and `data:` protocols from the HTML source *before* converting it to intermediate or final compiled formats.
-
-## 2026-03-06 - Pandoc Sandbox Flag for Untrusted Markdown Input
-**Vulnerability:** Execution of pandoc without the `--sandbox` flag on markdown files compiled from externally scraped sources. This could allow for arbitrary file read or system command execution if the external site injects malicious instructions within the markdown formatting.
-**Learning:** Pandoc is a powerful tool with many features that can be abused when processing untrusted input. Features like Lua filters or data fetching might be used maliciously. We should always use the `--sandbox` flag when pandoc acts on user-supplied or internet-scraped input to restrict its capabilities.
-**Prevention:** Always add `--sandbox` to the pandoc command-line arguments when converting files using the `subprocess` module, especially if the source content is scraped or untrusted.
-
-## 2026-03-07 - Robust XSS Sanitization for URL Attributes
-**Vulnerability:** XSS bypass via URL scheme obfuscation. The previous protection against malicious URL attributes (`href`, `src`) relied on a naive `val.lower().strip().startswith(("javascript:", "data:"))` check. Attackers could bypass this by injecting whitespace (e.g., `jav ascript:`), newlines, or URL/HTML encoded entities into the scheme, leading to XSS payloads persisting in generated PDFs or EPUBs.
-**Learning:** Browsers are highly fault-tolerant when parsing URIs. They ignore non-printable control characters, whitespaces, and decode HTML entities before evaluation. Naive string matching on unnormalized attributes is insufficient for blocking dangerous schemes.
-**Prevention:** Always normalize untrusted URLs before validation. Perform HTML entity unescaping (`html.unescape`), URL unquoting (`urllib.parse.unquote`), and aggressively strip all whitespaces and non-printable control characters using regex (`re.sub(r"[\s\x00-\x1f\x7f-\x9f]", "", val)`) before checking for malicious protocols (`javascript:`, `data:`, `vbscript:`).
-
-## 2026-03-10 - [Critical SSRF bypass using .netloc vs .hostname]
-**Vulnerability:** A critical SSRF bypass vulnerability was present in the scraper due to using `urllib.parse.urlparse().netloc.split(":")[0]` instead of `parsed.hostname` to validate target domains. A domain string could include `userinfo` (like `http://effectivealtruism.org@evil.com`), tricking `netloc.split(":")[0]` into reading `effectivealtruism.org` while actual outbound requests hit `evil.com`.
-**Learning:** `netloc` contains both `userinfo` and `port` info, making it vulnerable to such spoofing. Validation logic needs the actual domain without other URL components.
-**Prevention:** Always use `urllib.parse.urlparse().hostname` (with an `or ""` fallback) instead of parsing `.netloc` manually to avoid SSRF vulnerabilities when verifying URLs.
-
-## 2026-03-12 - Prevent XSS Payload Persistence via Data Attribute in Compiled Books
-**Vulnerability:** XSS payload persistence in compiled EPUB/PDF formats via the insecure `data` attribute. While `href` and `src` were sanitized against `javascript:` and `data:` schemes, the `data` attribute in tags like `<object>` was left unsanitized, providing an alternate avenue for payload smuggling.
-**Learning:** Sanitization logic targeting malicious protocols must apply universally to all attributes that can dictate resource execution, not just the most common ones like `href` and `src`.
-**Prevention:** Always include `data` in the list of attributes to sanitize when stripping malicious schemes like `javascript:` and `data:` from untrusted HTML source.
+## 2025-02-25 - Path Traversal in `.startswith()` string validations
+**Vulnerability:** URL path validation using raw `parsed.path.startswith("/expected/")` is vulnerable to path traversal (e.g., `/expected/../../../etc/passwd` evaluates to `True` but resolves to `/etc/passwd`).
+**Learning:** Raw URL strings with path traversal components like `../` will pass `.startswith()` prefix validations if the prefix strings appear correctly but bypass intended checks since clients dynamically resolve the resulting paths.
+**Prevention:** Always normalize URL paths using `posixpath.normpath` to strip out `../` traversal segments before applying string prefix validations.

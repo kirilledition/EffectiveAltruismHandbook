@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import posixpath
 import re
 import threading
 import time
@@ -183,7 +184,13 @@ def is_ea_forum_post(url: str) -> bool:
     if hostname == "forum.effectivealtruism.org" and parsed.port not in (None, 80, 443):
         return False
 
-    return "/posts/" in parsed.path or "/s/" in parsed.path
+    # Normalize the path to prevent path traversal bypasses
+    # e.g., /posts/../../../etc/passwd -> /etc/passwd
+    path = posixpath.normpath(parsed.path)
+    if not path.startswith("/"):
+        path = "/" + path
+
+    return path.startswith(("/posts/", "/s/"))
 
 
 def html_to_markdown(html_element: Tag) -> str:  # noqa: C901

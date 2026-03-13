@@ -123,6 +123,10 @@ class TestIsEaForumPost:
         assert not is_ea_forum_post("file:///etc/passwd")
         assert not is_ea_forum_post("data:text/html,<script>alert(1)</script>")
 
+    def test_path_traversal(self):
+        assert not is_ea_forum_post("https://forum.effectivealtruism.org/posts/../../../../etc/passwd")
+        assert not is_ea_forum_post("/posts/abc/../../../../../../etc/passwd")
+
 
 class TestScrapeHandbookIndex:
     def test_returns_posts(self):
