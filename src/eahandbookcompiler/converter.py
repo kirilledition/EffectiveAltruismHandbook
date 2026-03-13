@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from eahandbookcompiler.scraper import Handbook
+    from eahandbookcompiler.scraper import Handbook, Post
 
 PDF_CSS = """\
 @page {
@@ -96,6 +96,35 @@ def build_metadata_page(
     return "".join(parts)
 
 
+def _format_post(post: Post) -> str:
+    """Format a single post's content and metadata as markdown.
+
+    Args:
+        post: The post to format.
+
+    Returns:
+        A markdown string containing the post's title, byline, and body.
+    """
+    parts: list[str] = [f"## {post.title}\n\n"]
+
+    # Add author and date byline
+    if post.author and post.posted_date:
+        parts.append(f"*By {post.author} on {post.posted_date}*\n\n")
+    elif post.author:
+        parts.append(f"*By {post.author}*\n\n")
+    elif post.posted_date:
+        parts.append(f"*{post.posted_date}*\n\n")
+
+    if post.markdown:
+        # Demote headings inside the post body so they nest under ## title
+        parts.append(demote_headings(post.markdown))
+        parts.append("\n\n")
+    else:
+        parts.append(f"*See original post at: {post.url}*\n\n")
+
+    return "".join(parts)
+
+
 def handbook_to_markdown(
     handbook: Handbook,
     output_path: Path,
@@ -137,23 +166,7 @@ def handbook_to_markdown(
             current_section = post.section
             lines.append(f"# {current_section}\n\n")
 
-        lines.append(f"## {post.title}\n\n")
-
-        # Add author and date byline
-        if post.author and post.posted_date:
-            lines.append(f"*By {post.author} on {post.posted_date}*\n\n")
-        elif post.author:
-            lines.append(f"*By {post.author}*\n\n")
-        elif post.posted_date:
-            lines.append(f"*{post.posted_date}*\n\n")
-
-        if post.markdown:
-            # Demote headings inside the post body so they nest under ## title
-            demoted = demote_headings(post.markdown)
-            lines.append(demoted)
-            lines.append("\n\n")
-        else:
-            lines.append(f"*See original post at: {post.url}*\n\n")
+        lines.append(_format_post(post))
 
     output_path.write_text("".join(lines), encoding="utf-8")
     return output_path
