@@ -1418,7 +1418,9 @@ class TestScrapeAllFallbacks:
         response.raise_for_status.side_effect = req.exceptions.HTTPError("500 Server Error")
         session.get.return_value = response
 
-        with pytest.raises(req.exceptions.HTTPError):
+        import click
+
+        with pytest.raises(click.ClickException):
             scrape_all(session=session, delay=0, max_workers=1, verbose=False)
 
         captured = capsys.readouterr()
