@@ -852,6 +852,31 @@ class TestExtractAuthorJsonLdEdgeCases:
         soup = BeautifulSoup(html, "lxml")
         assert extract_author_json_ld(soup) == "Jane Author"
 
+    def test_type_error_continues_to_next_script(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            "<html><head>"
+            '<script type="application/ld+json"><p>invalid child to force None string</p></script>'
+            '<script type="application/ld+json">'
+            '{"author": "Jane Author"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == "Jane Author"
+
+    def test_invalid_json_continues_to_next_script(self):
+        from eahandbookcompiler.scraper import extract_author_json_ld
+
+        html = (
+            '<html><head><script type="application/ld+json">bad json</script>'
+            '<script type="application/ld+json">'
+            '{"author": "Jane Author"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_author_json_ld(soup) == "Jane Author"
+
     def test_dict_author_without_name(self):
         from eahandbookcompiler.scraper import extract_author_json_ld
 
@@ -890,6 +915,33 @@ class TestExtractDateJsonLd:
         )
         soup = BeautifulSoup(html, "lxml")
         assert extract_date(soup) == "2021-01-01"
+
+    def test_json_ld_type_error_continues_to_next_script(self):
+        html = (
+            "<html><head>"
+            '<script type="application/ld+json"><p>invalid child to force None string</p></script>'
+            '<script type="application/ld+json">'
+            '{"datePublished": "2023-05-20T10:00:00Z"}'
+            "</script></head><body></body></html>"
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2023-05-20"
+
+    def test_json_ld_json_decode_error_skipped(self):
+        html = (
+            '<html><head><script type="application/ld+json">{"datePublished": "missing quotes}</script></head>'
+            '<body><time datetime="2021-04-04T00:00:00Z">Apr 4</time></body></html>'
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-04-04"
+
+    def test_json_ld_non_dict_skipped(self):
+        html = (
+            '<html><head><script type="application/ld+json">["2023-01-01"]</script></head>'
+            '<body><time datetime="2021-03-03T00:00:00Z">Mar 3</time></body></html>'
+        )
+        soup = BeautifulSoup(html, "lxml")
+        assert extract_date(soup) == "2021-03-03"
 
     def test_meta_date_published(self):
         html = '<html><head><meta property="datePublished" content="2024-07-01T00:00:00Z"></head><body></body></html>'
@@ -1393,6 +1445,21 @@ class TestScrapePostContentFallbacks:
 
 
 class TestScrapeAllFallbacks:
+    @patch("eahandbookcompiler.scraper.scrape_handbook_index")
+    def test_scrape_all_non_verbose_index_error(self, mock_scrape_index, capsys):
+        """When not verbose and scrape_handbook_index raises an Exception, 'Failed.' is printed."""
+        import click
+
+        mock_scrape_index.side_effect = RuntimeError("Test exception")
+
+        session = MagicMock()
+        with pytest.raises(click.ClickException):
+            scrape_all(session=session, delay=0, max_workers=1, verbose=False)
+
+        captured = capsys.readouterr()
+        assert "Fetching handbook index... " in captured.out
+        assert "Failed." in captured.out
+
     def test_scrape_all_creates_session_when_none(self):
         """When session is None, scrape_all creates its own session."""
         with patch("eahandbookcompiler.scraper.make_session") as mock_make:
@@ -1410,6 +1477,7 @@ class TestScrapeAllFallbacks:
 
     def test_scrape_all_non_verbose_error(self, capsys):
         """When not verbose and index fetch fails, 'Failed.' is printed."""
+        import click
         import requests as req
 
         session = MagicMock()
@@ -1418,7 +1486,7 @@ class TestScrapeAllFallbacks:
         response.raise_for_status.side_effect = req.exceptions.HTTPError("500 Server Error")
         session.get.return_value = response
 
-        with pytest.raises(req.exceptions.HTTPError):
+        with pytest.raises(click.ClickException):
             scrape_all(session=session, delay=0, max_workers=1, verbose=False)
 
         captured = capsys.readouterr()

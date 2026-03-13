@@ -165,3 +165,56 @@ class TestBuildAll:
         assert result["markdown"].exists()
         mock_epub.assert_called_once()
         mock_pdf.assert_called_once()
+
+
+class TestConvertToEpub:
+    @patch("eahandbookcompiler.converter.require_pandoc")
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    def test_convert_to_epub_success(self, mock_run, mock_require_pandoc, tmp_path):
+        from eahandbookcompiler.converter import convert_to_epub
+
+        mock_require_pandoc.return_value = "/mock/bin/pandoc"
+        markdown_path = tmp_path / "input.md"
+        markdown_path.write_text("# Test", encoding="utf-8")
+        output_path = tmp_path / "output.epub"
+
+        result = convert_to_epub(markdown_path, output_path)
+
+        assert result == output_path
+        mock_require_pandoc.assert_called_once()
+        mock_run.assert_called_once()
+
+        dummy_css = tmp_path / "epub.css"
+        assert dummy_css.exists()
+        assert dummy_css.read_text(encoding="utf-8") == "/* Custom EPUB CSS */\n"
+
+        expected_args = [
+            "/mock/bin/pandoc",
+            str(markdown_path),
+            "--from=markdown",
+            "--to=epub3",
+            f"--output={output_path}",
+            "--toc-depth=2",
+            "--split-level=2",
+            f"--css={dummy_css}",
+        ]
+        mock_run.assert_called_once_with(expected_args, check=True)
+
+    @patch("eahandbookcompiler.converter.require_pandoc")
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    def test_convert_to_epub_dummy_css_exists(self, mock_run, mock_require_pandoc, tmp_path):
+        mock_run.return_value = None
+        from eahandbookcompiler.converter import convert_to_epub
+
+        mock_require_pandoc.return_value = "/mock/bin/pandoc"
+        markdown_path = tmp_path / "input.md"
+        markdown_path.write_text("# Test", encoding="utf-8")
+        output_path = tmp_path / "output.epub"
+
+        dummy_css = tmp_path / "epub.css"
+        dummy_css.write_text("/* Existing CSS */\n", encoding="utf-8")
+
+        result = convert_to_epub(markdown_path, output_path)
+
+        assert result == output_path
+        assert dummy_css.read_text(encoding="utf-8") == "/* Existing CSS */\n"

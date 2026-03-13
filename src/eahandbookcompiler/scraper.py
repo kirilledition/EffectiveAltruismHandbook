@@ -659,6 +659,7 @@ def _save_post_to_cache(cache_path: Path, post: Post) -> None:
                 indent=2,
             )
     except OSError:
+        # Cache writes are opportunistic; ignore failures (e.g. read-only filesystem).
         pass
 
 
@@ -666,8 +667,11 @@ def _process_single_post(
     post: Post,
     session: requests.Session | None,
     cache_dir: Path | None,
-) -> None:
+) -> bool:
     """Fetch and populate a single post, using cache when available.
+
+    Returns ``True`` if the post was loaded from cache, ``False`` if it
+    was fetched from the network.
 
     When *session* is ``None`` (concurrent mode) a thread-local session
     is lazily created so that each worker thread opens exactly one
@@ -688,12 +692,31 @@ def _process_single_post(
         url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
         cache_path = cache_dir / f"{url_hash}.json"
         if _load_cached_post(cache_path, post):
-            return
+            return True
 
     scrape_post_content(post, session)
 
     if cache_dir is not None:
         _save_post_to_cache(cache_path, post)
+
+    return False
+
+
+def _fetch_index_with_progress(session: requests.Session, verbose: bool) -> list[Post]:
+    """Fetch the handbook index with appropriate progress output."""
+    if verbose:
+        click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
+        return scrape_handbook_index(session)
+
+    click.secho("Fetching handbook index... ", fg="blue", nl=False)
+    try:
+        posts = scrape_handbook_index(session)
+    except Exception as e:
+        click.secho("Failed.", fg="red")
+        raise click.ClickException(str(e)) from e
+    else:
+        click.secho("Done.", fg="green")
+        return posts
 
 
 def scrape_all(
@@ -723,18 +746,7 @@ def scrape_all(
     if session is None:
         session = make_session()
 
-    if verbose:
-        click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
-        posts = scrape_handbook_index(session)
-    else:
-        click.secho("Fetching handbook index... ", fg="blue", nl=False)
-        try:
-            posts = scrape_handbook_index(session)
-        except Exception:
-            click.secho("Failed.", fg="red")
-            raise
-        else:
-            click.secho("Done.", fg="green")
+    posts = _fetch_index_with_progress(session, verbose)
 
     if verbose:
         click.echo(f"Found {len(posts)} posts. Fetching content …")
@@ -781,14 +793,14 @@ def _scrape_posts_sequential(
         with click.progressbar(posts, label="Scraping posts", item_show_func=_truncate_title) as bar:
             for i, item in enumerate(bar, 1):
                 post = _get_item_from_bar(item)
-                _process_single_post(post, session, cache_dir)
-                if i < total:
+                is_cached = _process_single_post(post, session, cache_dir)
+                if i < total and not is_cached:
                     time.sleep(delay)
     else:
         for i, post in enumerate(posts, 1):
             click.echo(f"  [{i}/{total}] {post.title}")
-            _process_single_post(post, session, cache_dir)
-            if i < total:
+            is_cached = _process_single_post(post, session, cache_dir)
+            if i < total and not is_cached:
                 time.sleep(delay)
 
 
@@ -815,8 +827,8 @@ def _scrape_posts_concurrent(
     total = len(posts)
 
     def _worker(post: Post) -> None:
-        _process_single_post(post, None, cache_dir)
-        if delay > 0:
+        is_cached = _process_single_post(post, None, cache_dir)
+        if delay > 0 and not is_cached:
             time.sleep(delay)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
