@@ -10,3 +10,7 @@
 ## 2025-03-11 - Add explicitly truncated item_show_func to long-running CLI tasks
 **Learning:** Using `click.progressbar` for iterative HTTP requests without displaying the current item feels like a static UI on large datasets. Providing an `item_show_func` that aggressively truncates strings (e.g., to ~35 characters) prevents line wrapping/flickering while providing crucial contextual feedback.
 **Action:** Always provide an `item_show_func` for `click.progressbar` tasks spanning over a few seconds. When iterating over futures asynchronously (e.g., `concurrent.futures.as_completed`), explicitly update `bar.current_item = item.title` before `bar.update(1)` so the user sees which tasks are finishing.
+
+## 2025-02-28 - Cleaner CLI Error Handling
+**Learning:** Raw stack traces from deep underlying processes (like external `pandoc` failures or network requests) are overwhelming for end users in a CLI context.
+**Action:** Always wrap generic or expected `Exception` blocks in `click.ClickException(str(e)) from e` to provide clean, readable error messages while maintaining the internal stack trace context if needed.

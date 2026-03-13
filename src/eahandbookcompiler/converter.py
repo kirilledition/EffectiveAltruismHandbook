@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from eahandbookcompiler.scraper import Handbook
+    from eahandbookcompiler.scraper import Handbook, Post
 
 PDF_CSS = """\
 @page {
@@ -41,6 +41,46 @@ description: >
 """
 
 
+def _get_authors_and_dates(handbook: Handbook) -> tuple[list[str], list[str]]:
+    """Extract sorted authors and dates from the handbook.
+
+    Args:
+        handbook: The populated Handbook.
+
+    Returns:
+        A tuple containing a sorted list of authors and a list of dates.
+    """
+    authors: set[str] = set()
+    dates: list[str] = []
+    for post in handbook.posts:
+        if post.author:
+            authors.add(post.author)
+        if post.posted_date:
+            dates.append(post.posted_date)
+    return sorted(authors, key=str.casefold), dates
+
+
+def _build_attribution_line(repo_url: str, commit_hash: str, latest: str) -> str:
+    """Build the compiler and repository attribution line.
+
+    Args:
+        repo_url: Repository URL for the attribution link.
+        commit_hash: Git commit hash to embed in the attribution line.
+        latest: The latest date found in the handbook posts.
+
+    Returns:
+        Attribution line string.
+    """
+    commit_part = f" with git commit `{commit_hash}`" if commit_hash else ""
+    repo_url = repo_url or "https://github.com/kirilledition/EffectiveAltruismHandbook"
+    return (
+        f"*This ebook was compiled by Kirill Denisov using "
+        f"[{repo_url.removeprefix('https://')}]({repo_url})"
+        f"{commit_part}. "
+        f"Last text update was on {latest}.*\n\n"
+    )
+
+
 def build_metadata_page(
     handbook: Handbook,
     commit_hash: str = "",
@@ -59,25 +99,13 @@ def build_metadata_page(
     Returns:
         Markdown string suitable for inserting at the start of the book.
     """
-    # Collect authors and dates
-    authors: set[str] = set()
-    dates: list[str] = []
-    for post in handbook.posts:
-        if post.author:
-            authors.add(post.author)
-        if post.posted_date:
-            dates.append(post.posted_date)
+    sorted_authors, dates = _get_authors_and_dates(handbook)
 
-    sorted_authors = sorted(authors, key=str.casefold)
     earliest = min(dates) if dates else "unknown"
     latest = max(dates) if dates else "unknown"
 
     # Build comma-separated author list
     author_list = ", ".join(sorted_authors) if sorted_authors else ""
-
-    # Build info
-    commit_part = f" with git commit `{commit_hash}`" if commit_hash else ""
-    repo_url = repo_url or "https://github.com/kirilledition/EffectiveAltruismHandbook"
 
     parts = [
         "# About This Book\n\n",
@@ -86,12 +114,36 @@ def build_metadata_page(
     if author_list:
         parts.append(f"{author_list}\n\n")
     parts.append("---\n\n")
-    parts.append(
-        f"*This ebook was compiled by Kirill Denisov using "
-        f"[{repo_url.removeprefix('https://')}]({repo_url})"
-        f"{commit_part}. "
-        f"Last text update was on {latest}.*\n\n",
-    )
+    parts.append(_build_attribution_line(repo_url, commit_hash, latest))
+
+    return "".join(parts)
+
+
+def _format_post(post: Post) -> str:
+    """Format a single post's content and metadata as markdown.
+
+    Args:
+        post: The post to format.
+
+    Returns:
+        A markdown string containing the post's title, byline, and body.
+    """
+    parts: list[str] = [f"## {post.title}\n\n"]
+
+    # Add author and date byline
+    if post.author and post.posted_date:
+        parts.append(f"*By {post.author} on {post.posted_date}*\n\n")
+    elif post.author:
+        parts.append(f"*By {post.author}*\n\n")
+    elif post.posted_date:
+        parts.append(f"*{post.posted_date}*\n\n")
+
+    if post.markdown:
+        # Demote headings inside the post body so they nest under ## title
+        parts.append(demote_headings(post.markdown))
+        parts.append("\n\n")
+    else:
+        parts.append(f"*See original post at: {post.url}*\n\n")
 
     return "".join(parts)
 
@@ -137,23 +189,7 @@ def handbook_to_markdown(
             current_section = post.section
             lines.append(f"# {current_section}\n\n")
 
-        lines.append(f"## {post.title}\n\n")
-
-        # Add author and date byline
-        if post.author and post.posted_date:
-            lines.append(f"*By {post.author} on {post.posted_date}*\n\n")
-        elif post.author:
-            lines.append(f"*By {post.author}*\n\n")
-        elif post.posted_date:
-            lines.append(f"*{post.posted_date}*\n\n")
-
-        if post.markdown:
-            # Demote headings inside the post body so they nest under ## title
-            demoted = demote_headings(post.markdown)
-            lines.append(demoted)
-            lines.append("\n\n")
-        else:
-            lines.append(f"*See original post at: {post.url}*\n\n")
+        lines.append(_format_post(post))
 
     output_path.write_text("".join(lines), encoding="utf-8")
     return output_path
