@@ -77,7 +77,18 @@ def build(
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir), max_workers=workers)
+    try:
+        handbook = scrape_all(
+            session=None,
+            delay=delay,
+            verbose=verbose,
+            cache_dir=Path(cache_dir),
+            max_workers=workers,
+        )
+    except click.ClickException:
+        raise
+    except Exception as e:
+        raise click.ClickException(str(e)) from e
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
@@ -182,7 +193,18 @@ def scrape(
     Raises:
         click.ClickException: If no posts are found after scraping.
     """
-    handbook = scrape_all(session=None, delay=delay, verbose=verbose, cache_dir=Path(cache_dir), max_workers=workers)
+    try:
+        handbook = scrape_all(
+            session=None,
+            delay=delay,
+            verbose=verbose,
+            cache_dir=Path(cache_dir),
+            max_workers=workers,
+        )
+    except click.ClickException:
+        raise
+    except Exception as e:
+        raise click.ClickException(str(e)) from e
 
     if not handbook.posts:
         raise click.ClickException("No posts were found. Aborting.")
@@ -191,13 +213,18 @@ def scrape(
     out_path.mkdir(parents=True, exist_ok=True)
 
     click.secho("Building markdown... ", fg="blue", nl=False)
-    path = handbook_to_markdown(
-        handbook,
-        out_path / "eahandbookcompiler.md",
-        commit_hash=commit_hash,
-        repo_url=repo_url,
-    )
-    click.secho("Done.", fg="green")
+    try:
+        path = handbook_to_markdown(
+            handbook,
+            out_path / "eahandbookcompiler.md",
+            commit_hash=commit_hash,
+            repo_url=repo_url,
+        )
+    except Exception as e:
+        click.secho("Failed.", fg="red")
+        raise click.ClickException(str(e)) from e
+    else:
+        click.secho("Done.", fg="green")
 
     click.echo(f"Markdown written to: {path}")
 

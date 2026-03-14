@@ -73,6 +73,18 @@ def test_build_no_posts(mock_scrape_all):
     mock_scrape_all.assert_called_once()
 
 
+@patch("eahandbookcompiler.main.scrape_all")
+def test_build_scrape_all_failure(mock_scrape_all):
+    mock_scrape_all.side_effect = RuntimeError("network error")
+
+    runner = CliRunner()
+    result = runner.invoke(build)
+
+    assert result.exit_code != 0
+    assert "network error" in result.output
+    mock_scrape_all.assert_called_once()
+
+
 @patch("eahandbookcompiler.main.handbook_to_markdown")
 @patch("eahandbookcompiler.main.scrape_all")
 def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
@@ -111,6 +123,31 @@ def test_scrape_no_posts(mock_scrape_all):
     assert result.exit_code != 0
     assert "No posts were found. Aborting." in result.output
     mock_scrape_all.assert_called_once()
+
+
+@patch("eahandbookcompiler.main.scrape_all")
+def test_scrape_scrape_all_failure(mock_scrape_all):
+    mock_scrape_all.side_effect = RuntimeError("network error")
+
+    runner = CliRunner()
+    result = runner.invoke(scrape)
+
+    assert result.exit_code != 0
+    assert "network error" in result.output
+    mock_scrape_all.assert_called_once()
+
+
+@patch("eahandbookcompiler.main.handbook_to_markdown")
+@patch("eahandbookcompiler.main.scrape_all")
+def test_scrape_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
+    mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
+    mock_handbook_to_markdown.side_effect = RuntimeError("write error")
+
+    runner = CliRunner()
+    result = runner.invoke(scrape, ["--output-dir", "dist"])
+
+    assert result.exit_code != 0
+    assert "Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_pdf")
