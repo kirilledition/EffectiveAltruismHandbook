@@ -153,8 +153,8 @@ def test_scrape_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
 @patch("eahandbookcompiler.main.convert_to_pdf")
 @patch("eahandbookcompiler.main.convert_to_epub")
 def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
-    mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
-    mock_convert_to_pdf.return_value = Path("dist/eahandbookcompiler.pdf")
+    mock_convert_to_epub.return_value = Path("dist/input.epub")
+    mock_convert_to_pdf.return_value = Path("dist/input.pdf")
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -163,11 +163,11 @@ def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
         assert result.exit_code == 0
-        assert "epub: dist/eahandbookcompiler.epub" in result.output
-        assert "pdf:  dist/eahandbookcompiler.pdf" in result.output
+        assert "epub: dist/input.epub" in result.output
+        assert "pdf:  dist/input.pdf" in result.output
 
-        mock_convert_to_epub.assert_called_once()
-        mock_convert_to_pdf.assert_called_once()
+        mock_convert_to_epub.assert_called_once_with(Path("input.md"), Path("dist/input.epub"))
+        mock_convert_to_pdf.assert_called_once_with(Path("input.md"), Path("dist/input.pdf"))
 
 
 def test_convert_file_not_found():
@@ -238,7 +238,7 @@ def test_convert_epub_failure(mock_convert_to_epub):
 @patch("eahandbookcompiler.main.convert_to_pdf")
 @patch("eahandbookcompiler.main.convert_to_epub")
 def test_convert_pdf_failure(mock_convert_to_epub, mock_convert_to_pdf):
-    mock_convert_to_epub.return_value = Path("dist/eahandbookcompiler.epub")
+    mock_convert_to_epub.return_value = Path("dist/input.epub")
     mock_convert_to_pdf.side_effect = RuntimeError("pdf error")
 
     runner = CliRunner()
