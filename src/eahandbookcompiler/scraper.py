@@ -262,7 +262,62 @@ def _strip_cc_license_footers(element: Tag) -> None:
             child.decompose()
 
 
-def extract_author(soup: BeautifulSoup) -> str:
+def extract_metadata_json_ld(soup: BeautifulSoup) -> tuple[str, str]:  # noqa: C901, PLR0912
+    """Try to extract author and date from JSON-LD structured data in a single pass.
+
+    Args:
+        soup: Parsed page containing potential ``<script type="application/ld+json">`` blocks.
+
+    Returns:
+        Tuple of (author_name, date_string).
+    """
+    author = ""
+    date_str = ""
+
+    # ⚡ Bolt Optimization: Evaluate JSON-LD scripts exactly once to find both
+    # author and date. This avoids two separate `find_all` calls and duplicate JSON
+    # decoding for elements containing both properties.
+    for script in soup.find_all("script", type="application/ld+json"):
+        s = script.string or ""
+        if not s:
+            continue
+
+        has_author = '"author"' in s
+        has_date = '"datePublished"' in s or '"dateCreated"' in s
+
+        if not has_author and not has_date:
+            continue
+
+        try:
+            data = json.loads(s)
+            if not isinstance(data, dict):
+                continue
+        except (json.JSONDecodeError, TypeError):  # fmt: skip
+            continue
+
+        if not author and has_author:
+            a = data.get("author")
+            if isinstance(a, dict):
+                name = a.get("name", "")
+                if name:
+                    author = name
+            elif isinstance(a, str) and a:
+                author = a
+
+        if not date_str and has_date:
+            for key in ("datePublished", "dateCreated"):
+                ds = data.get(key, "")
+                if ds:
+                    date_str = str(ds)[:10]  # YYYY-MM-DD
+                    break
+
+        if author and date_str:
+            break
+
+    return author, date_str
+
+
+def extract_author(soup: BeautifulSoup, author_ld: str = "") -> str:
     """Extract the author name from a post page, trying several strategies.
 
     Strategies tried in order: JSON-LD structured data, ``<meta>`` author
@@ -271,11 +326,14 @@ def extract_author(soup: BeautifulSoup) -> str:
 
     Args:
         soup: Parsed post page.
+        author_ld: Author pre-extracted from JSON-LD to save parsing time.
 
     Returns:
         Author name, or an empty string if none could be found.
     """
-    name = extract_author_json_ld(soup)
+    name = author_ld
+    if not name:
+        name = extract_author_json_ld(soup)
     if not name:
         name = extract_author_meta(soup)
     if not name:
@@ -308,27 +366,8 @@ def extract_author_json_ld(soup: BeautifulSoup) -> str:
     Returns:
         Author name, or an empty string if not found.
     """
-    for script in soup.find_all("script", type="application/ld+json"):
-        # ⚡ Bolt Optimization: Use fast string check before full JSON decode overhead.
-        # Structured data can be large; decoding it only to discard it is slow.
-        s = script.string or ""
-        if '"author"' not in s:
-            continue
-
-        try:
-            data = json.loads(s)
-        except (json.JSONDecodeError, TypeError):  # fmt: skip
-            continue
-        if not isinstance(data, dict):
-            continue
-        author = data.get("author")
-        if isinstance(author, dict):
-            name = author.get("name", "")
-            if name:
-                return name
-        elif isinstance(author, str) and author:
-            return author
-    return ""
+    author, _ = extract_metadata_json_ld(soup)
+    return author
 
 
 def extract_author_meta(soup: BeautifulSoup) -> str:
@@ -375,7 +414,7 @@ def extract_author_byline(soup: BeautifulSoup) -> str:
     return ""
 
 
-def extract_date(soup: BeautifulSoup) -> str:
+def extract_date(soup: BeautifulSoup, date_ld: str = "") -> str:
     """Extract the publication date from a post page.
 
     Tries JSON-LD, ``<meta>`` date properties, and ``<time>`` elements
@@ -383,25 +422,17 @@ def extract_date(soup: BeautifulSoup) -> str:
 
     Args:
         soup: Parsed post page.
+        date_ld: Date pre-extracted from JSON-LD to save parsing time.
 
     Returns:
         ISO date string (YYYY-MM-DD), or an empty string if not found.
     """
-    for script in soup.find_all("script", type="application/ld+json"):
-        # ⚡ Bolt Optimization: Fast string check before parsing JSON.
-        s = script.string or ""
-        if '"datePublished"' not in s and '"dateCreated"' not in s:
-            continue
+    if date_ld:
+        return date_ld
 
-        try:
-            data = json.loads(s)
-            if isinstance(data, dict):
-                for key in ("datePublished", "dateCreated"):
-                    date_str = data.get(key, "")
-                    if date_str:
-                        return date_str[:10]  # YYYY-MM-DD
-        except (json.JSONDecodeError, TypeError):  # fmt: skip
-            continue
+    _, date_str = extract_metadata_json_ld(soup)
+    if date_str:
+        return date_str
 
     for attr_name in ("article:published_time", "datePublished", "date"):
         meta = soup.find("meta", attrs={"property": attr_name}) or soup.find(
@@ -638,8 +669,10 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     else:
         post.markdown = f"*Content could not be extracted from {post.url}*"
 
-    post.author = extract_author(soup)
-    post.posted_date = extract_date(soup)
+    author_ld, date_ld = extract_metadata_json_ld(soup)
+
+    post.author = extract_author(soup, author_ld=author_ld)
+    post.posted_date = extract_date(soup, date_ld=date_ld)
 
     return post
 
