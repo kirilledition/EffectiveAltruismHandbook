@@ -254,7 +254,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     try:
         epub_path = convert_to_epub(
             markdown_path,
-            output_path / "eahandbookcompiler.epub",
+            output_path / f"{markdown_path.stem}.epub",
         )
     except Exception as e:
         click.secho("Failed.", fg="red")
@@ -266,7 +266,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     try:
         pdf_path = convert_to_pdf(
             markdown_path,
-            output_path / "eahandbookcompiler.pdf",
+            output_path / f"{markdown_path.stem}.pdf",
         )
     except Exception as e:
         click.secho("Failed.", fg="red")
