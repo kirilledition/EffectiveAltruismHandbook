@@ -438,13 +438,18 @@ def extract_date(soup: BeautifulSoup, date_ld: str = "") -> str:
     if date_str:
         return date_str
 
+    # ⚡ Bolt Optimization: Replace multiple full-document searches for specific
+    # meta attributes with a single pass fetching all meta tags, followed by
+    # Python-level iteration. Meta tags are sparse (mostly in <head>), so this
+    # reduces O(N) DOM traversals significantly while preserving priority order.
+    metas = soup.find_all("meta")
     for attr_name in ("article:published_time", "datePublished", "date"):
-        meta = soup.find("meta", attrs={"property": attr_name}) or soup.find(
-            "meta",
-            attrs={"name": attr_name},
-        )
-        if meta and meta.get("content"):
-            return str(meta["content"]).strip()[:10]
+        for meta in metas:
+            if meta.get("property") == attr_name and meta.get("content"):
+                return str(meta["content"]).strip()[:10]
+        for meta in metas:
+            if meta.get("name") == attr_name and meta.get("content"):
+                return str(meta["content"]).strip()[:10]
 
     time_tag = soup.find("time", attrs={"datetime": True})
     if time_tag:
