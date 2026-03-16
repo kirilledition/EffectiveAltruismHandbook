@@ -13,3 +13,6 @@
 ## 2025-03-24 - Improve CLI UX by wrapping unhandled exceptions
 **Learning:** Leaking overwhelming raw Python stack traces to users on unexpected failures provides a poor user experience in a CLI tool.
 **Action:** Catch unhandled `Exception` instances at the command level and raise `click.ClickException(str(e)) from e` to display a clean, actionable error message.
+## 2025-03-24 - Improve CLI UX by surfacing subprocess error outputs
+**Learning:** When invoking external tools like `pandoc` via `subprocess.run()`, unhandled `CalledProcessError`s default to generic "command returned non-zero exit status" messages, hiding the actual failure reason (e.g., missing CSS, syntax error). This leaves users confused.
+**Action:** Always capture `stderr` (e.g., `capture_output=True, text=True`) and surface it in the exception message so that CLI error handlers (`click.ClickException`) can provide actionable feedback.

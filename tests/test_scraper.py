@@ -635,6 +635,8 @@ class TestConvertToEpub:
                 f"--css={test_output_path.parent / 'epub.css'}",
             ],
             check=True,
+            capture_output=True,
+            text=True,
         )
         assert test_output_path.parent.exists()
 

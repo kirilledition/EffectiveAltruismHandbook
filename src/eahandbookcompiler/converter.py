@@ -281,19 +281,25 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
     if not dummy_css.exists():
         dummy_css.write_text("/* Custom EPUB CSS */\n", encoding="utf-8")
 
-    subprocess.run(
-        [
-            pandoc,
-            str(markdown_path),
-            "--from=markdown",
-            "--to=epub3",
-            f"--output={output_path}",
-            "--toc-depth=2",
-            "--split-level=2",
-            f"--css={dummy_css}",
-        ],
-        check=True,
-    )
+    try:
+        subprocess.run(
+            [
+                pandoc,
+                str(markdown_path),
+                "--from=markdown",
+                "--to=epub3",
+                f"--output={output_path}",
+                "--toc-depth=2",
+                "--split-level=2",
+                f"--css={dummy_css}",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr.strip() if e.stderr else str(e)
+        raise RuntimeError(f"pandoc failed: {err_msg}") from e
     return output_path
 
 
@@ -335,7 +341,11 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
         pdf_css.write_text(PDF_CSS, encoding="utf-8")
         cmd.append(f"--css={pdf_css}")
 
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr.strip() if e.stderr else str(e)
+        raise RuntimeError(f"pandoc failed: {err_msg}") from e
     return output_path
 
 
