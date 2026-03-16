@@ -31,7 +31,7 @@ _DECOMPOSE_TAGS = frozenset(["nav", "footer", "script", "style", "noscript"])
 _SANITIZE_TAGS = frozenset(["a", "img", "source", "object", "iframe", "embed"])
 _HTML_TAGS_TO_FILTER = list(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
-_DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:")
+_DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
 
 
 # Compiled regexes for optimal class name lookups, avoiding lambda overhead
@@ -193,7 +193,7 @@ def is_ea_forum_post(url: str) -> bool:
     return path.startswith(("/posts/", "/s/"))
 
 
-def html_to_markdown(html_element: Tag) -> str:  # noqa: C901
+def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
     """Convert a BeautifulSoup element to clean markdown.
 
     Navigation, footer, script, style, and comment sections are stripped
@@ -233,6 +233,10 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901
                     cleaned_val = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
                     if cleaned_val.startswith(_DANGEROUS_SCHEMES):
                         del element[attr]
+                    else:
+                        parsed_val = urlparse(val)
+                        if not parsed_val.scheme and not val.startswith(("#", "mailto:", "tel:")):
+                            element[attr] = urljoin(BASE_URL, val)
 
     # Remove standard Creative Commons license footers
     _strip_cc_license_footers(html_element)

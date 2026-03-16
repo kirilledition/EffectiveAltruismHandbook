@@ -1223,8 +1223,10 @@ def test_html_to_markdown_xss_evasion():
     <a href="%6Aavascrip%74:%61lert(1)">Click me6</a>
     <a href="&#x6A;avascrip&#x74;&#x3A;alert(1)">Click me7</a>
     <a href="vbscript:msgbox(1)">Click me8</a>
+    <a href="file:///etc/passwd">LFI attempt</a>
     <a href="https://example.com">safe</a>
     <a href="mailto:test@example.com">safe mailto</a>
+    <a href="/relative/path">relative</a>
     </div>"""
     soup = BeautifulSoup(html, "lxml")
     tag = soup.find("div")
@@ -1233,10 +1235,12 @@ def test_html_to_markdown_xss_evasion():
 
     assert "javascript:" not in md
     assert "vbscript:" not in md
+    assert "file:" not in md
     assert "alert(1)" not in md
     assert "msgbox(1)" not in md
     assert "[safe](https://example.com)" in md
     assert "[safe mailto](mailto:test@example.com)" in md
+    assert "[relative](https://forum.effectivealtruism.org/relative/path)" in md
 
 
 class TestFetchUnsafePort:
