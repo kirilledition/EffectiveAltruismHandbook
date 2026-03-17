@@ -44,6 +44,9 @@ LARGE_SEQ_RIGHT_RE = re.compile(r"LargeSequencesItem-right")
 CONTENT_CLASS_RE = re.compile(r"(?i)content")
 TOC_CLASS_RE = re.compile(r"(?i)tableofcontents")
 
+_AUTHOR_CLEAN_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"\s+")
+
 # Thread-local storage for per-thread sessions in the concurrent scraper.
 # Each worker thread lazily creates exactly one ``requests.Session`` via
 # ``make_session()`` and reuses it for every post it processes, enabling
@@ -355,10 +358,15 @@ def _clean_author_name(name: str) -> str:
     Returns:
         Cleaned author name.
     """
-    # Remove any residual HTML tags
-    cleaned = re.sub(r"<[^>]+>", "", name)
-    # Collapse whitespace and strip
-    return re.sub(r"\s+", " ", cleaned).strip()
+    # ⚡ Bolt Optimization: Use fast-path string checks and pre-compiled regexes
+    # to bypass overhead when no HTML tags or excessive whitespace exist.
+    if "<" in name:
+        name = _AUTHOR_CLEAN_RE.sub("", name)
+
+    if "  " in name or "\n" in name or "\t" in name or "\r" in name or "\xa0" in name:
+        name = _WHITESPACE_RE.sub(" ", name)
+
+    return name.strip()
 
 
 def extract_author_json_ld(soup: BeautifulSoup) -> str:
