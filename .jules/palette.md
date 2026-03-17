@@ -16,3 +16,6 @@
 ## 2025-03-24 - Improve CLI UX by surfacing subprocess error outputs
 **Learning:** When invoking external tools like `pandoc` via `subprocess.run()`, unhandled `CalledProcessError`s default to generic "command returned non-zero exit status" messages, hiding the actual failure reason (e.g., missing CSS, syntax error). This leaves users confused.
 **Action:** Always capture `stderr` (e.g., `capture_output=True, text=True`) and surface it in the exception message so that CLI error handlers (`click.ClickException`) can provide actionable feedback.
+## 2025-03-24 - Added visual feedback icons to CLI loading states
+**Learning:** Adding explicit checkmarks (✓) and crosses (✗) to success/error CLI output messages makes the terminal logs significantly more scannable and intuitive for the user, improving the overall developer experience.
+**Action:** When printing status messages (like 'Done' or 'Failed') in CLI tools, always prefix them with appropriate visual icons to provide immediate, clear feedback.

@@ -801,10 +801,10 @@ def scrape_all(
         try:
             posts = scrape_handbook_index(session)
         except Exception as e:
-            click.secho("Failed.", fg="red")
+            click.secho("✗ Failed.", fg="red")
             raise click.ClickException(str(e)) from e
         else:
-            click.secho("Done.", fg="green")
+            click.secho("✓ Done.", fg="green")
 
     if verbose:
         click.echo(f"Found {len(posts)} posts. Fetching content …")
