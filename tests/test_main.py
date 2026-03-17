@@ -49,7 +49,7 @@ def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_
     assert "Building markdown..." in result.output
     assert "Building epub..." in result.output
     assert "Building pdf..." in result.output
-    assert "Done." in result.output
+    assert "✓ Done." in result.output
 
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
@@ -147,7 +147,7 @@ def test_scrape_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
     result = runner.invoke(scrape, ["--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_pdf")
@@ -187,7 +187,7 @@ def test_build_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
     result = runner.invoke(build, ["--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_epub")
@@ -202,7 +202,7 @@ def test_build_epub_failure(mock_scrape_all, mock_handbook_to_markdown, mock_con
     result = runner.invoke(build, ["--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_pdf")
@@ -219,7 +219,7 @@ def test_build_pdf_failure(mock_scrape_all, mock_handbook_to_markdown, mock_conv
     result = runner.invoke(build, ["--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_epub")
@@ -232,7 +232,7 @@ def test_convert_epub_failure(mock_convert_to_epub):
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output
 
 
 @patch("eahandbookcompiler.main.convert_to_pdf")
@@ -247,4 +247,4 @@ def test_convert_pdf_failure(mock_convert_to_epub, mock_convert_to_pdf):
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
     assert result.exit_code != 0
-    assert "Failed." in result.output
+    assert "✗ Failed." in result.output

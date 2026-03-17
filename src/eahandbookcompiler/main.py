@@ -105,28 +105,28 @@ def build(
             repo_url=repo_url,
         )
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.secho("Building epub... ", fg="blue", nl=False)
     try:
         epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.secho("Building pdf... ", fg="blue", nl=False)
     try:
         pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.echo("Output files:")
     click.echo(f"  markdown: {md_path}")
@@ -221,10 +221,10 @@ def scrape(
             repo_url=repo_url,
         )
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.echo(f"Markdown written to: {path}")
 
@@ -257,10 +257,10 @@ def convert(markdown_file: str, output_dir: str) -> None:
             output_path / f"{markdown_path.stem}.epub",
         )
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.secho("Building pdf... ", fg="blue", nl=False)
     try:
@@ -269,10 +269,10 @@ def convert(markdown_file: str, output_dir: str) -> None:
             output_path / f"{markdown_path.stem}.pdf",
         )
     except Exception as e:
-        click.secho("Failed.", fg="red")
+        click.secho("✗ Failed.", fg="red")
         raise click.ClickException(str(e)) from e
     else:
-        click.secho("Done.", fg="green")
+        click.secho("✓ Done.", fg="green")
 
     click.echo(f"epub: {epub_path}")
     click.echo(f"pdf:  {pdf_path}")
