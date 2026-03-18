@@ -856,7 +856,14 @@ def _scrape_posts_sequential(
     """Download posts one at a time with a polite delay."""
     total = len(posts)
     if not verbose:
-        with click.progressbar(posts, label="Scraping posts", item_show_func=_truncate_title) as bar:
+        with click.progressbar(
+            posts,
+            label="Scraping posts",
+            item_show_func=_truncate_title,
+            fill_char=click.style("█", fg="blue"),
+            empty_char=click.style("░", fg="blue"),
+            color=True,
+        ) as bar:
             for i, item in enumerate(bar, 1):
                 post = _get_item_from_bar(item)
                 _process_single_post(post, session, cache_dir)
@@ -900,7 +907,14 @@ def _scrape_posts_concurrent(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {executor.submit(_worker, post): i for i, post in enumerate(posts)}
         if not verbose:
-            with click.progressbar(length=total, label="Scraping posts", item_show_func=_truncate_title) as bar:
+            with click.progressbar(
+                length=total,
+                label="Scraping posts",
+                item_show_func=_truncate_title,
+                fill_char=click.style("█", fg="blue"),
+                empty_char=click.style("░", fg="blue"),
+                color=True,
+            ) as bar:
                 for future in as_completed(future_to_index):
                     idx = future_to_index[future]
                     future.result()  # propagate exceptions
