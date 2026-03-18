@@ -19,3 +19,6 @@
 ## 2025-03-24 - Added visual feedback icons to CLI loading states
 **Learning:** Adding explicit checkmarks (✓) and crosses (✗) to success/error CLI output messages makes the terminal logs significantly more scannable and intuitive for the user, improving the overall developer experience.
 **Action:** When printing status messages (like 'Done' or 'Failed') in CLI tools, always prefix them with appropriate visual icons to provide immediate, clear feedback.
+## 2025-03-24 - Enhance CLI progress bar visuals
+**Learning:** The default `click.progressbar` characters can look plain and lack visual polish. Adding stylized fill and empty characters makes the interface feel much more premium and delightful.
+**Action:** When using `click.progressbar`, apply colors to custom `fill_char` (e.g. `█`) and `empty_char` (e.g. `░`) and set `color=True` to improve visual feedback.
