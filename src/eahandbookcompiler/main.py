@@ -11,6 +11,26 @@ from eahandbookcompiler.converter import (
 )
 from eahandbookcompiler.scraper import REQUEST_DELAY, scrape_all
 
+_KB = 1024.0
+
+
+def _format_size(path: Path) -> str:
+    """Return a human-readable file size string."""
+    try:
+        size = float(path.stat().st_size)
+    except OSError:
+        # File might not exist or be accessible; fallback to unknown size string
+        pass
+    else:
+        for unit in ("B", "KB", "MB", "GB"):
+            if size < _KB:
+                if unit == "B":
+                    return f"{int(size)} {unit}"
+                return f"{size:.1f} {unit}"
+            size /= _KB
+        return f"{size:.1f} TB"
+    return "unknown size"
+
 
 @click.group()
 @click.version_option()
@@ -129,9 +149,9 @@ def build(
         click.secho("✓ Done.", fg="green")
 
     click.echo("Output files:")
-    click.echo(f"  markdown: {md_path}")
-    click.echo(f"  epub: {epub_path}")
-    click.echo(f"  pdf: {pdf_path}")
+    click.echo(f"  markdown: {md_path} ({_format_size(md_path)})")
+    click.echo(f"  epub: {epub_path} ({_format_size(epub_path)})")
+    click.echo(f"  pdf: {pdf_path} ({_format_size(pdf_path)})")
 
 
 @cli.command()
@@ -226,7 +246,7 @@ def scrape(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.echo(f"Markdown written to: {path}")
+    click.echo(f"Markdown written to: {path} ({_format_size(path)})")
 
 
 @cli.command()
@@ -274,5 +294,5 @@ def convert(markdown_file: str, output_dir: str) -> None:
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.echo(f"epub: {epub_path}")
-    click.echo(f"pdf:  {pdf_path}")
+    click.echo(f"epub: {epub_path} ({_format_size(epub_path)})")
+    click.echo(f"pdf:  {pdf_path} ({_format_size(pdf_path)})")

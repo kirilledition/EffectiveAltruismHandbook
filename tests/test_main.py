@@ -18,11 +18,19 @@ def test_cli_version():
     assert "cli, version" in result.output
 
 
+@patch("eahandbookcompiler.main._format_size")
 @patch("eahandbookcompiler.main.convert_to_pdf")
 @patch("eahandbookcompiler.main.convert_to_epub")
 @patch("eahandbookcompiler.main.handbook_to_markdown")
 @patch("eahandbookcompiler.main.scrape_all")
-def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_to_epub, mock_convert_to_pdf):
+def test_build_success(
+    mock_scrape_all,
+    mock_handbook_to_markdown,
+    mock_convert_to_epub,
+    mock_convert_to_pdf,
+    mock_format_size,
+):
+    mock_format_size.return_value = "1.0 KB"
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
     mock_handbook_to_markdown.return_value = Path("custom-dist/eahandbookcompiler.md")
     mock_convert_to_epub.return_value = Path("custom-dist/eahandbookcompiler.epub")
@@ -43,9 +51,9 @@ def test_build_success(mock_scrape_all, mock_handbook_to_markdown, mock_convert_
 
     assert result.exit_code == 0
     assert "Output files:" in result.output
-    assert "markdown: custom-dist/eahandbookcompiler.md" in result.output
-    assert "epub: custom-dist/eahandbookcompiler.epub" in result.output
-    assert "pdf: custom-dist/eahandbookcompiler.pdf" in result.output
+    assert "markdown: custom-dist/eahandbookcompiler.md (1.0 KB)" in result.output
+    assert "epub: custom-dist/eahandbookcompiler.epub (1.0 KB)" in result.output
+    assert "pdf: custom-dist/eahandbookcompiler.pdf (1.0 KB)" in result.output
     assert "Building markdown..." in result.output
     assert "Building epub..." in result.output
     assert "Building pdf..." in result.output
@@ -85,9 +93,11 @@ def test_build_scrape_all_failure(mock_scrape_all):
     mock_scrape_all.assert_called_once()
 
 
+@patch("eahandbookcompiler.main._format_size")
 @patch("eahandbookcompiler.main.handbook_to_markdown")
 @patch("eahandbookcompiler.main.scrape_all")
-def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
+def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown, mock_format_size):
+    mock_format_size.return_value = "1.0 KB"
     mock_scrape_all.return_value = Handbook(posts=[Post("T", "U")])
     mock_handbook_to_markdown.return_value = Path("dist/eahandbookcompiler.md")
 
@@ -105,7 +115,7 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown):
     )
 
     assert result.exit_code == 0
-    assert "Markdown written to: dist/eahandbookcompiler.md" in result.output
+    assert "Markdown written to: dist/eahandbookcompiler.md (1.0 KB)" in result.output
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
     _, kwargs = mock_handbook_to_markdown.call_args
@@ -150,9 +160,11 @@ def test_scrape_markdown_failure(mock_scrape_all, mock_handbook_to_markdown):
     assert "✗ Failed." in result.output
 
 
+@patch("eahandbookcompiler.main._format_size")
 @patch("eahandbookcompiler.main.convert_to_pdf")
 @patch("eahandbookcompiler.main.convert_to_epub")
-def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
+def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf, mock_format_size):
+    mock_format_size.return_value = "1.0 KB"
     mock_convert_to_epub.return_value = Path("dist/input.epub")
     mock_convert_to_pdf.return_value = Path("dist/input.pdf")
 
@@ -163,8 +175,8 @@ def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf):
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
         assert result.exit_code == 0
-        assert "epub: dist/input.epub" in result.output
-        assert "pdf:  dist/input.pdf" in result.output
+        assert "epub: dist/input.epub (1.0 KB)" in result.output
+        assert "pdf:  dist/input.pdf (1.0 KB)" in result.output
 
         mock_convert_to_epub.assert_called_once_with(Path("input.md"), Path("dist/input.epub"))
         mock_convert_to_pdf.assert_called_once_with(Path("input.md"), Path("dist/input.pdf"))
