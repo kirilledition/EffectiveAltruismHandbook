@@ -97,7 +97,7 @@ class TestFetch:
         session.get.return_value = response
 
         with pytest.raises(requests.exceptions.HTTPError):
-            fetch(session, "https://example.com/not-found")
+            fetch(session, "https://effectivealtruism.org/not-found")
 
 
 class TestIsEaForumPost:
@@ -706,7 +706,7 @@ class TestFetchRedirects:
 
         from eahandbookcompiler.scraper import fetch
 
-        with pytest.raises(ValueError, match=r"Unsafe redirect domain: evil\.com"):
+        with pytest.raises(ValueError, match=r"Unsafe URL domain: evil\.com"):
             fetch(session, "https://forum.effectivealtruism.org/post")
 
     def test_fetch_unsafe_scheme_redirect(self):
@@ -720,7 +720,7 @@ class TestFetchRedirects:
 
         from eahandbookcompiler.scraper import fetch
 
-        with pytest.raises(ValueError, match="Unsafe redirect scheme: file"):
+        with pytest.raises(ValueError, match="Unsafe URL scheme: file"):
             fetch(session, "https://forum.effectivealtruism.org/post")
 
     def test_fetch_too_many_redirects(self):
@@ -1257,7 +1257,7 @@ class TestFetchUnsafePort:
         }
         session.get.return_value = redirect_response
 
-        with pytest.raises(ValueError, match="Unsafe redirect port: 8080"):
+        with pytest.raises(ValueError, match="Unsafe URL port: 8080"):
             fetch(session, "https://forum.effectivealtruism.org/post")
 
 

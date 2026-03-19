@@ -103,6 +103,29 @@ def make_session() -> requests.Session:
     return session
 
 
+def _validate_url(url: str) -> None:
+    """Validate that a URL uses a safe scheme, domain, and port.
+
+    Args:
+        url: URL to validate.
+
+    Raises:
+        ValueError: If the URL targets an unsafe domain, scheme, or port.
+    """
+    parsed = urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Unsafe URL scheme: {parsed.scheme}")
+
+    hostname = parsed.hostname or ""
+    if not (hostname == "effectivealtruism.org" or hostname.endswith(".effectivealtruism.org")):
+        raise ValueError(f"Unsafe URL domain: {hostname}")
+
+    port = parsed.port
+    if port not in (None, 80, 443):
+        raise ValueError(f"Unsafe URL port: {port}")
+
+
 def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     """Fetch a URL and return parsed HTML, following safe redirects only.
 
@@ -124,6 +147,7 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     """
     current_url = url
     for _ in range(5):
+        _validate_url(current_url)
         response = session.get(current_url, timeout=30, allow_redirects=False)
         if response.is_redirect:
             location = response.headers.get("Location")
@@ -131,18 +155,6 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
                 break
 
             redirect_url = urljoin(current_url, location)
-            parsed = urlparse(redirect_url)
-
-            if parsed.scheme not in ("http", "https"):
-                raise ValueError(f"Unsafe redirect scheme: {parsed.scheme}")
-
-            hostname = parsed.hostname or ""
-            if not (hostname == "effectivealtruism.org" or hostname.endswith(".effectivealtruism.org")):
-                raise ValueError(f"Unsafe redirect domain: {hostname}")
-
-            port = parsed.port
-            if port not in (None, 80, 443):
-                raise ValueError(f"Unsafe redirect port: {port}")
             current_url = redirect_url
         else:
             break
