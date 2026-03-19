@@ -22,3 +22,7 @@
 ## 2025-03-24 - Enhance CLI progress bar visuals
 **Learning:** The default `click.progressbar` characters can look plain and lack visual polish. Adding stylized fill and empty characters makes the interface feel much more premium and delightful.
 **Action:** When using `click.progressbar`, apply colors to custom `fill_char` (e.g. `█`) and `empty_char` (e.g. `░`) and set `color=True` to improve visual feedback.
+
+## 2025-03-03 - Add File Size Output to CLI
+**Learning:** For command-line tools that generate static files (like ebooks or markdown), users often want to know the size of the resulting artifacts immediately.
+**Action:** Append human-readable file sizes (e.g., `(1.5 MB)`) to the output paths in the success messages. This simple micro-UX improvement saves the user a trip to their file explorer or `ls -lh` command and provides immediate feedback on the operation's result.
