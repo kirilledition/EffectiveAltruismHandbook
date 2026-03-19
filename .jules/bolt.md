@@ -54,3 +54,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-03-05 - Fast-path checking for rare string occurrences in BeautifulSoup
 **Learning:** `BeautifulSoup.find_all()` combined with evaluating `get_text()` on every matched child node is incredibly expensive in Python loops, especially for deeply nested HTML like forum posts. When searching for rare text strings (like CC licenses which appear in <1% of posts), this causes massive O(N) overhead.
 **Action:** Use `element.get_text().lower()` as an initial O(1) string check at the parent level. If the keywords are completely absent from the parent's concatenated text, `return` immediately to skip the O(N) DOM traversal entirely. This dropped evaluation time for posts without CC licenses from ~100ms down to ~10ms.
+
+## 2026-03-19 - Native split and join over regex for whitespace normalization
+**Learning:** Using `\" \".join(string.split())` is roughly 2x faster than using `re.sub(r'\s+', ' ', string)` to collapse arbitrary whitespace. It avoids instantiating and running the regular expression engine, instead relying entirely on highly-optimized native C-level string methods.
+**Action:** When normalizing whitespace (e.g. collapsing spaces, tabs, and newlines), prefer the `.split()` and `.join()` pattern over regular expressions.
