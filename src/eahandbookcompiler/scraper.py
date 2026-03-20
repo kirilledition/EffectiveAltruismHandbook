@@ -766,7 +766,7 @@ def _process_single_post(
     post: Post,
     session: requests.Session | None,
     cache_dir: Path | None,
-) -> None:
+) -> bool:
     """Fetch and populate a single post, using cache when available.
 
     When *session* is ``None`` (concurrent mode) a thread-local session
@@ -778,6 +778,9 @@ def _process_single_post(
         session: Active requests session, or ``None`` to use a
             thread-local session.
         cache_dir: Optional cache directory for post data.
+
+    Returns:
+        ``True`` if the post was loaded from cache, ``False`` otherwise.
     """
     if session is None:
         if not hasattr(_thread_local, "session"):
@@ -788,12 +791,14 @@ def _process_single_post(
         url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
         cache_path = cache_dir / f"{url_hash}.json"
         if _load_cached_post(cache_path, post):
-            return
+            return True
 
     scrape_post_content(post, session)
 
     if cache_dir is not None:
         _save_post_to_cache(cache_path, post)
+
+    return False
 
 
 def scrape_all(
@@ -888,14 +893,14 @@ def _scrape_posts_sequential(
         ) as bar:
             for i, item in enumerate(bar, 1):
                 post = _get_item_from_bar(item)
-                _process_single_post(post, session, cache_dir)
-                if i < total:
+                cache_hit = _process_single_post(post, session, cache_dir)
+                if i < total and not cache_hit:
                     time.sleep(delay)
     else:
         for i, post in enumerate(posts, 1):
             click.echo(f"  [{i}/{total}] {post.title}")
-            _process_single_post(post, session, cache_dir)
-            if i < total:
+            cache_hit = _process_single_post(post, session, cache_dir)
+            if i < total and not cache_hit:
                 time.sleep(delay)
 
 
@@ -922,8 +927,8 @@ def _scrape_posts_concurrent(
     total = len(posts)
 
     def _worker(post: Post) -> None:
-        _process_single_post(post, None, cache_dir)
-        if delay > 0:
+        cache_hit = _process_single_post(post, None, cache_dir)
+        if delay > 0 and not cache_hit:
             time.sleep(delay)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
