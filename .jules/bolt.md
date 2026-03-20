@@ -58,3 +58,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2026-03-19 - Native split and join over regex for whitespace normalization
 **Learning:** Using `\" \".join(string.split())` is roughly 2x faster than using `re.sub(r'\s+', ' ', string)` to collapse arbitrary whitespace. It avoids instantiating and running the regular expression engine, instead relying entirely on highly-optimized native C-level string methods.
 **Action:** When normalizing whitespace (e.g. collapsing spaces, tabs, and newlines), prefer the `.split()` and `.join()` pattern over regular expressions.
+
+## 2025-03-09 - Fast-path string checks over regex for class name exclusion
+**Learning:** When checking if a class name contains a specific substring (like "comments") case-insensitively across many elements, using `re.search` with a compiled `(?i)comments` pattern is significantly slower (~2-3x) than using a fast-path string check like `"comments" in c.lower()`. Regular expressions carry intrinsic engine overhead, whereas Python's built-in string methods like `.lower()` and the `in` operator execute as highly optimized C code.
+**Action:** When filtering or excluding elements based on simple, known substrings in tight loops (like iterating over all nodes to clean up the DOM before Markdown conversion), always prefer native string checks (`"substring" in string.lower()`) over regular expressions to bypass the regex engine overhead entirely.
