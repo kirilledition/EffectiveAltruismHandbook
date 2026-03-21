@@ -148,10 +148,11 @@ def build(
     else:
         click.secho("✓ Done.", fg="green")
 
+    click.secho("\n✨ Build complete!", fg="green", bold=True)
     click.echo("Output files:")
-    click.echo(f"  markdown: {md_path} ({_format_size(md_path)})")
-    click.echo(f"  epub: {epub_path} ({_format_size(epub_path)})")
-    click.echo(f"  pdf: {pdf_path} ({_format_size(pdf_path)})")
+    click.echo(f"  markdown: {click.style(str(md_path), fg='cyan')} ({_format_size(md_path)})")
+    click.echo(f"  epub:     {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
+    click.echo(f"  pdf:      {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")
 
 
 @cli.command()
@@ -246,7 +247,8 @@ def scrape(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.echo(f"Markdown written to: {path} ({_format_size(path)})")
+    click.secho("\n✨ Scrape complete!", fg="green", bold=True)
+    click.echo(f"Markdown written to: {click.style(str(path), fg='cyan')} ({_format_size(path)})")
 
 
 @cli.command()
@@ -294,5 +296,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.echo(f"epub: {epub_path} ({_format_size(epub_path)})")
-    click.echo(f"pdf:  {pdf_path} ({_format_size(pdf_path)})")
+    click.secho("\n✨ Conversion complete!", fg="green", bold=True)
+    click.echo("Output files:")
+    click.echo(f"  epub: {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
+    click.echo(f"  pdf:  {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")

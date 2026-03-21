@@ -52,8 +52,9 @@ def test_build_success(
     assert result.exit_code == 0
     assert "Output files:" in result.output
     assert "markdown: custom-dist/eahandbookcompiler.md (1.0 KB)" in result.output
-    assert "epub: custom-dist/eahandbookcompiler.epub (1.0 KB)" in result.output
-    assert "pdf: custom-dist/eahandbookcompiler.pdf (1.0 KB)" in result.output
+    assert "epub:     custom-dist/eahandbookcompiler.epub (1.0 KB)" in result.output
+    assert "pdf:      custom-dist/eahandbookcompiler.pdf (1.0 KB)" in result.output
+    assert "✨ Build complete!" in result.output
     assert "Building markdown..." in result.output
     assert "Building epub..." in result.output
     assert "Building pdf..." in result.output
@@ -115,6 +116,7 @@ def test_scrape_success(mock_scrape_all, mock_handbook_to_markdown, mock_format_
     )
 
     assert result.exit_code == 0
+    assert "✨ Scrape complete!" in result.output
     assert "Markdown written to: dist/eahandbookcompiler.md (1.0 KB)" in result.output
     mock_scrape_all.assert_called_once()
     mock_handbook_to_markdown.assert_called_once()
@@ -175,6 +177,7 @@ def test_convert_success(mock_convert_to_epub, mock_convert_to_pdf, mock_format_
         result = runner.invoke(convert, ["input.md", "--output-dir", "dist"])
 
         assert result.exit_code == 0
+        assert "✨ Conversion complete!" in result.output
         assert "epub: dist/input.epub (1.0 KB)" in result.output
         assert "pdf:  dist/input.pdf (1.0 KB)" in result.output
 
