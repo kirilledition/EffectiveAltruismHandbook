@@ -117,7 +117,9 @@ def _validate_url(url: str) -> None:
         raise ValueError(f"Unsafe URL scheme: {parsed.scheme}")
 
     hostname = parsed.hostname or ""
-    if not (hostname.endswith(("effectivealtruism.org", "80000hours.org"))):
+    if not (
+        hostname.endswith(("effectivealtruism.org", "80000hours.org"))
+    ):
         raise ValueError(f"Unsafe URL domain: {hostname}")
 
     port = parsed.port
@@ -712,7 +714,6 @@ def _extract_external_link(markdown: str) -> str | None:
         # Handle EA Forum outbound link redirect wrapper
         if "forum.effectivealtruism.org/out" in url:
             from urllib.parse import parse_qs, urlparse  # noqa: PLC0415
-
             parsed = urlparse(url)
             query = parse_qs(parsed.query)
             if "url" in query:

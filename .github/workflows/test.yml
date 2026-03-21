@@ -104,7 +104,7 @@ jobs:
         # The 'convert' CLI command always outputs to eahandbookcompiler.{epub,pdf}
         run: |
           for ext in epub pdf; do
-            file="dist/eahandbookcompiler.${ext}"
+            file="dist/sample.${ext}"
             if [ ! -f "$file" ]; then
               echo "ERROR: $file was not generated"
               exit 1
