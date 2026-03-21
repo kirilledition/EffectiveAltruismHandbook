@@ -117,7 +117,9 @@ def _validate_url(url: str) -> None:
         raise ValueError(f"Unsafe URL scheme: {parsed.scheme}")
 
     hostname = parsed.hostname or ""
-    if not (hostname == "effectivealtruism.org" or hostname.endswith(".effectivealtruism.org")):
+    if not (
+        hostname.endswith(("effectivealtruism.org", "80000hours.org"))
+    ):
         raise ValueError(f"Unsafe URL domain: {hostname}")
 
     port = parsed.port
@@ -683,6 +685,44 @@ def find_post_body(soup: BeautifulSoup) -> Tag | None:
     )
 
 
+def _extract_external_link(markdown: str) -> str | None:
+    """Extract an external URL from common EA Forum linkpost patterns.
+
+    Looks for 'This is a linkpost for [URL]', 'Continue reading on [site]',
+    or '[This post is a summary of [URL]]'.
+
+    Args:
+        markdown: The generated markdown content of the post.
+
+    Returns:
+        The extracted external URL if found, otherwise None.
+    """
+    # Check for known linkpost or summary patterns
+    match = re.search(
+        r"(?:This is a linkpost for|Continue reading on.+?website|a link to|summary of).*?\[.+?\]\((https?://[^)]+)\)",
+        markdown,
+        re.IGNORECASE,
+    )
+
+    # If not found but the post is short and explicitly links to 80k, try a fallback
+    short_post_max_len = 5000
+    if not match and "80000hours.org" in markdown and len(markdown) < short_post_max_len:
+        match = re.search(r"\[.+?\]\((https?://[^)]+80000hours\.org[^)]*)\)", markdown, re.IGNORECASE)
+
+    if match:
+        url = match.group(1)
+        # Handle EA Forum outbound link redirect wrapper
+        if "forum.effectivealtruism.org/out" in url:
+            from urllib.parse import parse_qs, urlparse  # noqa: PLC0415
+            parsed = urlparse(url)
+            query = parse_qs(parsed.query)
+            if "url" in query:
+                url = query["url"][0]
+        return url
+
+    return None
+
+
 def scrape_post_content(post: Post, session: requests.Session | None = None) -> Post:
     """Fetch the content of a single post and populate its fields.
 
@@ -715,7 +755,37 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
     post.author = extract_author(soup, author_ld=author_ld)
     post.posted_date = extract_date(soup, date_ld=date_ld)
 
+    # Check if the post is actually a linkpost to an external supported domain
+    external_url = _extract_external_link(post.markdown)
+    if external_url and ("80000hours.org" in external_url):
+        try:
+            external_soup = fetch(session, external_url)
+            external_body = find_external_post_body(external_soup)
+            if external_body:
+                external_markdown = html_to_markdown(external_body)
+                post.markdown = f"*This post was extracted from {external_url}*\n\n---\n\n{external_markdown}"
+        except requests.RequestException:
+            pass  # Fall back to the original forum post if external fetching fails
+
     return post
+
+
+def find_external_post_body(soup: BeautifulSoup) -> Tag | None:
+    """Locate the post body element for supported external sites (e.g. 80,000 Hours).
+
+    Args:
+        soup: Parsed external page.
+
+    Returns:
+        The body element, or None if not found.
+    """
+    # 80,000 hours typically wraps their article in an <article> tag
+    return (
+        soup.find("article")
+        or soup.find("main")
+        or soup.find("div", class_=re.compile(r"(?i)content|body"))
+        or soup.body
+    )
 
 
 def _load_cached_post(cache_path: Path, post: Post) -> bool:
