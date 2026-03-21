@@ -70,10 +70,14 @@ SAMPLE_POST_HTML = """\
 
 def _make_response(html: str) -> MagicMock:
     response = MagicMock()
+    response.__enter__ = MagicMock(return_value=response)
+    response.__exit__ = MagicMock(return_value=None)
     response.text = html
     response.raise_for_status = MagicMock()
     response.is_redirect = False
     response.headers = {"Content-Type": "text/html; charset=utf-8"}
+    response.encoding = "utf-8"
+    response.iter_content.return_value = [html.encode("utf-8")]
     return response
 
 
@@ -90,6 +94,8 @@ class TestFetch:
 
         session = MagicMock()
         response = MagicMock()
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=None)
         response.is_redirect = False
         response.raise_for_status.side_effect = requests.exceptions.HTTPError(
             "404 Client Error",
@@ -279,6 +285,8 @@ class TestScrapeAllConcurrent:
         index_session.get.return_value = _make_response(SAMPLE_HANDBOOK_HTML)
 
         error_response = MagicMock()
+        error_response.__enter__ = MagicMock(return_value=error_response)
+        error_response.__exit__ = MagicMock(return_value=None)
         error_response.is_redirect = False
         error_response.raise_for_status.side_effect = req.exceptions.HTTPError("500 Server Error")
 
@@ -673,16 +681,20 @@ class TestFetchRedirects:
             "https://forum.effectivealtruism.org/post",
             timeout=30,
             allow_redirects=False,
+            stream=True,
         )
 
     def test_fetch_safe_redirect(self):
         session = MagicMock()
 
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {
-            "Location": "https://effectivealtruism.org/new-post",
-        }
+        redirect_response.encoding = "utf-8"
+        redirect_response.iter_content.return_value = []
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = "https://effectivealtruism.org/new-post"
 
         final_response = _make_response("<html><body>content</body></html>")
         final_response.is_redirect = False
@@ -699,8 +711,11 @@ class TestFetchRedirects:
         session = MagicMock()
 
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {"Location": "https://evil.com/post"}
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = "https://evil.com/post"
 
         session.get.return_value = redirect_response
 
@@ -713,8 +728,11 @@ class TestFetchRedirects:
         session = MagicMock()
 
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {"Location": "file:///etc/passwd"}
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = "file:///etc/passwd"
 
         session.get.return_value = redirect_response
 
@@ -729,10 +747,11 @@ class TestFetchRedirects:
         session = MagicMock()
 
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {
-            "Location": "https://forum.effectivealtruism.org/redirect",
-        }
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = "https://forum.effectivealtruism.org/redirect"
 
         session.get.return_value = redirect_response
 
@@ -800,10 +819,16 @@ class TestFetchRedirectMissingLocation:
 
         session = MagicMock()
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {}
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = None
         redirect_response.text = "<html><body>fallback</body></html>"
         redirect_response.raise_for_status = MagicMock()
+
+        redirect_response.encoding = "utf-8"
+        redirect_response.iter_content.return_value = [b"<html><body>fallback</body></html>"]
 
         session.get.return_value = redirect_response
 
@@ -1251,10 +1276,11 @@ class TestFetchUnsafePort:
 
         session = MagicMock()
         redirect_response = MagicMock()
+        redirect_response.__enter__ = MagicMock(return_value=redirect_response)
+        redirect_response.__exit__ = MagicMock(return_value=None)
         redirect_response.is_redirect = True
-        redirect_response.headers = {
-            "Location": "https://forum.effectivealtruism.org:8080/post",
-        }
+        redirect_response.headers = MagicMock()
+        redirect_response.headers.get.return_value = "https://forum.effectivealtruism.org:8080/post"
         session.get.return_value = redirect_response
 
         with pytest.raises(ValueError, match="Unsafe URL port: 8080"):
@@ -1443,9 +1469,12 @@ class TestFetchContentTypeValidation:
 
         session = MagicMock()
         response = MagicMock()
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=None)
         response.is_redirect = False
         response.raise_for_status = MagicMock()
-        response.headers = {"Content-Type": "application/octet-stream"}
+        response.headers = MagicMock()
+        response.headers.get.return_value = "application/octet-stream"
         session.get.return_value = response
 
         with pytest.raises(ValueError, match="Unexpected Content-Type"):
@@ -1456,9 +1485,12 @@ class TestFetchContentTypeValidation:
 
         session = MagicMock()
         response = MagicMock()
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=None)
         response.is_redirect = False
         response.raise_for_status = MagicMock()
-        response.headers = {"Content-Type": "image/png"}
+        response.headers = MagicMock()
+        response.headers.get.return_value = "image/png"
         session.get.return_value = response
 
         with pytest.raises(ValueError, match="Unexpected Content-Type"):
@@ -1479,10 +1511,15 @@ class TestFetchContentTypeValidation:
 
         session = MagicMock()
         response = MagicMock()
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=None)
         response.is_redirect = False
         response.raise_for_status = MagicMock()
         response.text = "<html><body>ok</body></html>"
-        response.headers = {}
+        response.headers = MagicMock()
+        response.headers.get.return_value = None
+        response.encoding = "utf-8"
+        response.iter_content.return_value = [b"<html><body>ok</body></html>"]
         session.get.return_value = response
 
         soup = fetch(session, "https://forum.effectivealtruism.org/post")
@@ -1493,10 +1530,15 @@ class TestFetchContentTypeValidation:
 
         session = MagicMock()
         response = MagicMock()
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=None)
         response.is_redirect = False
         response.raise_for_status = MagicMock()
         response.text = "<html><body>ok</body></html>"
-        response.headers = {"Content-Type": "application/xhtml+xml"}
+        response.headers = MagicMock()
+        response.headers.get.return_value = "application/xhtml+xml"
+        response.encoding = "utf-8"
+        response.iter_content.return_value = [b"<html><body>ok</body></html>"]
         session.get.return_value = response
 
         soup = fetch(session, "https://forum.effectivealtruism.org/post")

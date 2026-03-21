@@ -147,30 +147,41 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     current_url = url
     for _ in range(5):
         _validate_url(current_url)
-        response = session.get(current_url, timeout=30, allow_redirects=False)
-        if response.is_redirect:
-            location = response.headers.get("Location")
-            if not location:
-                break
+        with session.get(current_url, timeout=30, allow_redirects=False, stream=True) as response:
+            if response.is_redirect:
+                location = response.headers.get("Location")
+                if not location:
+                    # If a redirect has no Location, treat it as a normal response
+                    pass
+                else:
+                    redirect_url = urljoin(current_url, location)
+                    current_url = redirect_url
+                    continue
 
-            redirect_url = urljoin(current_url, location)
-            current_url = redirect_url
-        else:
-            break
-    else:
-        raise requests.TooManyRedirects(f"Exceeded maximum redirects for {url}")
+            response.raise_for_status()
 
-    response.raise_for_status()
+            # Reject non-HTML responses to avoid processing large binary files
+            # (e.g. if the server redirects to an asset CDN).
+            content_type = response.headers.get("Content-Type", "")
+            if content_type:
+                mime = content_type.split(";")[0].strip().lower()
+                if mime not in ("text/html", "application/xhtml+xml"):
+                    raise ValueError(f"Unexpected Content-Type for {current_url}: {content_type}")
 
-    # Reject non-HTML responses to avoid processing large binary files
-    # (e.g. if the server redirects to an asset CDN).
-    content_type = response.headers.get("Content-Type", "")
-    if content_type:
-        mime = content_type.split(";")[0].strip().lower()
-        if mime not in ("text/html", "application/xhtml+xml"):
-            raise ValueError(f"Unexpected Content-Type for {current_url}: {content_type}")
+            chunks = []
+            downloaded = 0
+            max_size = 10 * 1024 * 1024  # 10 MB limit to prevent memory exhaustion DoS
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    chunks.append(chunk)
+                    downloaded += len(chunk)
+                    if downloaded > max_size:
+                        raise ValueError(f"Response too large for {current_url}: exceeds 10 MB limit")
 
-    return BeautifulSoup(response.text, "lxml")
+            text = b"".join(chunks).decode(response.encoding or "utf-8", errors="replace")
+            return BeautifulSoup(text, "lxml")
+
+    raise requests.TooManyRedirects(f"Exceeded maximum redirects for {url}")
 
 
 def is_ea_forum_post(url: str) -> bool:
