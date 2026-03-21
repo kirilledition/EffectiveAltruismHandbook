@@ -763,7 +763,7 @@ def scrape_post_content(post: Post, session: requests.Session | None = None) -> 
             if external_body:
                 external_markdown = html_to_markdown(external_body)
                 post.markdown = f"*This post was extracted from {external_url}*\n\n---\n\n{external_markdown}"
-        except (requests.RequestException, ValueError):
+        except requests.RequestException, ValueError:
             pass  # Fall back to the original forum post if external fetching fails
 
     return post
