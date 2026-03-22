@@ -149,6 +149,11 @@ def _validate_url(url: str) -> None:
     Raises:
         ValueError: If the URL targets an unsafe domain, scheme, or port.
     """
+    # Security Enhancement: Prevent URL validation bypasses via backslashes
+    # where urllib.parse.urlparse fails to normalize them into the path/hostname
+    # correctly, ensuring consistent interpretation with modern HTTP clients.
+    url = url.replace("\\", "/")
+
     parsed = urlparse(url)
 
     if parsed.scheme not in ("http", "https"):
@@ -231,6 +236,11 @@ def is_ea_forum_post(url: str) -> bool:
     Returns:
         ``True`` if the URL matches a known EA Forum post pattern.
     """
+    # Security Enhancement: Prevent URL validation bypasses via backslashes
+    # where urllib.parse.urlparse fails to normalize them into the path/hostname
+    # correctly, ensuring consistent interpretation with modern HTTP clients.
+    url = url.replace("\\", "/")
+
     # ⚡ Bolt Optimization: Fast-path string check bypasses expensive URL parsing
     # and normalization overhead (~2x faster) for the vast majority of URLs that
     # are clearly not EA Forum posts (e.g. external links).
