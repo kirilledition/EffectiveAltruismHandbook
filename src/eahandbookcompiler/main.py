@@ -85,6 +85,7 @@ def build(
 ) -> None:
     """Scrape the handbook and build markdown, epub, and pdf.
 
+    \f
     Args:
         output_dir: Directory where output files are written.
         delay: Seconds to wait between HTTP requests.
@@ -202,6 +203,7 @@ def scrape(
 ) -> None:
     """Scrape the handbook and write only the combined markdown file.
 
+    \f
     Args:
         output_dir: Directory where the markdown file is written.
         delay: Seconds to wait between HTTP requests.
@@ -264,6 +266,7 @@ def scrape(
 def convert(markdown_file: str, output_dir: str) -> None:
     """Convert an existing markdown file to epub and pdf (requires pandoc).
 
+    \f
     Args:
         markdown_file: Path to the source markdown file.
         output_dir: Directory where converted files are written.

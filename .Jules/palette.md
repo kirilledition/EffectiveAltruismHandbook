@@ -1,3 +1,3 @@
-## YYYY-MM-DD - Initial Setup
-**Learning:** Found an opportunity to improve the CLI UX by formatting the success output.
-**Action:** Enhance the final output of the CLI commands to look visually better with bold text, colors, and an overall success indicator.
+## 2024-05-24 - Hiding Click docstring arguments from `--help` output
+**Learning:** `click` natively includes the entire docstring of the command function in the `--help` output. For CLI applications, developer-focused information like `Args:` and `Raises:` clutters the user help text.
+**Action:** Use `click`'s `\f` (form feed) escape character in the docstring. `click` truncates the help output at `\f`, hiding anything below it from the user while preserving the full docstring for documentation generators and linters like `ruff`. Do NOT use raw string prefixes (`r"""`) for the docstring, as `r"\f"` evaluates to a literal backslash and the letter "f", which Click will not recognize as a truncation marker. Instead, use standard strings (`"""`) and suppress the resulting `D301` (missing `r` prefix) linting rule in `pyproject.toml` (under `tool.ruff.lint.per-file-ignores`) to prevent CI failures.
