@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import html
 import json
@@ -12,7 +13,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import ParseResult, unquote
+from urllib.parse import urljoin as _urljoin
+from urllib.parse import urlparse as _urlparse
 
 import click
 import requests
@@ -32,6 +35,41 @@ _SANITIZE_TAGS = frozenset(["a", "img", "source", "object", "iframe", "embed"])
 _HTML_TAGS_TO_FILTER = list(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
 _DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
+
+
+# ⚡ Bolt Optimization: To optimize URL processing for repetitive links (common in documents like the EA Handbook),
+# memoize urllib.parse.urlparse and urllib.parse.urljoin using functools.lru_cache(maxsize=512)
+# to bypass redundant string parsing overhead.
+@functools.lru_cache(maxsize=512)
+def urlparse(url: str, scheme: str = "", allow_fragments: bool = True) -> ParseResult:
+    """Parse a URL into 6 components, memoized for performance.
+
+    Args:
+        url: URL string to parse.
+        scheme: Default scheme to use if URL lacks one.
+        allow_fragments: Whether to allow fragment identifiers.
+
+    Returns:
+        ParseResult containing the 6 components.
+    """
+    return _urlparse(url, scheme, allow_fragments)
+
+
+@functools.lru_cache(maxsize=512)
+def urljoin(base: str, url: str | None, allow_fragments: bool = True) -> str:
+    """Join a base URL and a possibly relative URL to form an absolute interpretation.
+
+    Memoized for performance.
+
+    Args:
+        base: Base URL.
+        url: URL to join.
+        allow_fragments: Whether to allow fragment identifiers.
+
+    Returns:
+        A full, absolute URL string.
+    """
+    return _urljoin(base, url, allow_fragments)
 
 
 # Compiled regexes for optimal class name lookups, avoiding lambda overhead
