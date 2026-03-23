@@ -676,7 +676,7 @@ def extract_posts_from_content(content: Tag) -> list[Post]:
     return _extract_from_heading_structure(content)
 
 
-def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]:
+def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]:  # noqa: C901
     """Fetch the handbook index and return a list of Posts.
 
     Content is not yet fetched at this stage.
@@ -693,15 +693,33 @@ def scrape_handbook_index(session: requests.Session | None = None) -> list[Post]
     soup = fetch(session, HANDBOOK_URL)
 
     # Look for the main content area, avoiding TableOfContents which has 'content' in the name
-    content = None
-    for div in soup.find_all("div", class_=CONTENT_CLASS_RE):
-        classes = div.get("class")
-        if isinstance(classes, list) and not any(TOC_CLASS_RE.search(c) for c in classes):
-            content = div
-            break
-        if isinstance(classes, str) and not TOC_CLASS_RE.search(classes):
-            content = div
-            break
+    def _match_content_div(tag: Tag) -> bool:
+        if tag.name != "div":
+            return False
+        classes = tag.get("class")
+        if not classes:
+            return False
+
+        # ⚡ Bolt Optimization: Use fast-path string checks instead of regex
+        # execution to filter classes.
+        if isinstance(classes, str):
+            c_lower = classes.lower()
+            return "content" in c_lower and "tableofcontents" not in c_lower
+
+        has_content = False
+        for c in classes:
+            c_lower = c.lower()
+            if "tableofcontents" in c_lower:
+                return False
+            if "content" in c_lower:
+                has_content = True
+        return has_content
+
+    # ⚡ Bolt Optimization: Use soup.find() with a custom evaluation function
+    # instead of find_all(). find_all() eagerly evaluates and traverses the
+    # entire O(N) DOM tree even if we only need the first match. find() stops
+    # immediately upon finding the first match, bypassing redundant traversal.
+    content = soup.find(_match_content_div)
 
     if content is None:
         content = soup.find("main") or soup.find("article") or soup.body
