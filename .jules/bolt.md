@@ -66,3 +66,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-03-22 - Fast-path string inclusion bypasses for heavy URL parsing
 **Learning:** Executing `urllib.parse.urlparse` and `posixpath.normpath` on thousands of arbitrary external links simply to check if they match a specific route pattern (like `/posts/`) is unnecessarily expensive. A simple `if "/posts/" not in url` substring check can immediately reject invalid URLs, bypassing the heavy library parsing entirely and doubling performance for the negative case.
 **Action:** When filtering or validating complex URIs or file paths, always identify if there's a required, unique substring. Use a native Python `in` or `not in` check to fast-path reject invalid strings before passing the remaining inputs to heavy standard library parsing functions.
+
+## 2024-05-18 - Caching MarkdownConverter instances
+**Learning:** Instantiating `markdownify.MarkdownConverter` repeatedly inside a tight loop (e.g., for every HTML element or page converted) incurs significant overhead due to internal initialization and regex compilation. Reusing a single instance initialized at the module level roughly halves the conversion time.
+**Action:** Always instantiate heavy conversion objects like `MarkdownConverter` once at the module level or share them via a context/class property, rather than re-creating them for each item processed in a loop.
