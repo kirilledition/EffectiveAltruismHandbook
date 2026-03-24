@@ -13,7 +13,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
-from urllib.parse import ParseResult, unquote
+from urllib.parse import ParseResult, parse_qs, unquote
 from urllib.parse import urljoin as _urljoin
 from urllib.parse import urlparse as _urlparse
 
@@ -322,7 +322,18 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                     else:
                         parsed_val = urlparse(val)
                         if not parsed_val.scheme and not val.startswith(("#", "mailto:", "tel:")):
-                            element[attr] = urljoin(BASE_URL, val)
+                            val = urljoin(BASE_URL, val)
+
+                        # UX Enhancement: Unwrap EA Forum outbound link redirects (/out?url=...)
+                        # so readers can access external links directly when reading offline,
+                        # without relying on the forum's redirect service.
+                        parsed_url = urlparse(val)
+                        if parsed_url.path == "/out":
+                            qs = parse_qs(parsed_url.query)
+                            if qs.get("url"):
+                                val = qs["url"][0]
+
+                        element[attr] = val
 
     # Remove standard Creative Commons license footers
     _strip_cc_license_footers(html_element)
