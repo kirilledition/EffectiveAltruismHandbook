@@ -145,11 +145,14 @@ def make_session() -> requests.Session:
     return session
 
 
-def _validate_url(url: str) -> None:
+def _validate_url(url: str) -> str:
     """Validate that a URL uses a safe scheme, domain, and port.
 
     Args:
         url: URL to validate.
+
+    Returns:
+        The normalized and validated URL string.
 
     Raises:
         ValueError: If the URL targets an unsafe domain, scheme, or port.
@@ -171,6 +174,8 @@ def _validate_url(url: str) -> None:
     port = parsed.port
     if port not in (None, 80, 443):
         raise ValueError(f"Unsafe URL port: {port}")
+
+    return parsed.geturl()
 
 
 def fetch(session: requests.Session, url: str) -> BeautifulSoup:
@@ -194,7 +199,7 @@ def fetch(session: requests.Session, url: str) -> BeautifulSoup:
     """
     current_url = url
     for _ in range(5):
-        _validate_url(current_url)
+        current_url = _validate_url(current_url)
         with session.get(current_url, timeout=30, allow_redirects=False, stream=True) as response:
             if response.is_redirect:
                 location = response.headers.get("Location")
