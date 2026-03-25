@@ -513,7 +513,6 @@ def extract_author_byline(soup: BeautifulSoup) -> str:
     Returns:
         Author name, or an empty string if not found.
     """
-
     # ⚡ Bolt Optimization: Replace exact class list checking and regex engine
     # overhead with a fast custom evaluation function. This bypasses BeautifulSoup's
     # slow internal attribute parsing and executes roughly 3x faster than passing
@@ -785,7 +784,6 @@ def find_post_body(soup: BeautifulSoup) -> Tag | None:
     Returns:
         The body element, or ``None`` if no known selector matches.
     """
-
     # ⚡ Bolt Optimization: Pass a fast custom evaluation function directly to soup.find().
     # This bypasses BeautifulSoup's slow internal attribute parsing and regex overhead
     # while maintaining O(1) matching for the body container, completing ~3x faster.
@@ -799,7 +797,9 @@ def find_post_body(soup: BeautifulSoup) -> Tag | None:
             return classes in ("postBody", "post-body", "PostBody")
         return any(cls in ("postBody", "post-body", "PostBody") for cls in classes)
 
-    return soup.find(_match_post_body) or soup.find("div", {"itemprop": "articleBody"}) or soup.find("article")
+    return (
+        soup.find(_match_post_body) or soup.find("div", {"itemprop": "articleBody"}) or soup.find("article")
+    )
 
 
 def scrape_post_content(post: Post, session: requests.Session | None = None) -> Post:
