@@ -101,10 +101,10 @@ jobs:
         run: uv run python -m eahandbookcompiler convert dist/sample.md --output-dir dist
 
       - name: Verify output file sizes
-        # The 'convert' CLI command always outputs to eahandbookcompiler.{epub,pdf}
+        # The 'convert' CLI command outputs to the markdown file's stem (sample.{epub,pdf})
         run: |
           for ext in epub pdf; do
-            file="dist/eahandbookcompiler.${ext}"
+            file="dist/sample.${ext}"
             if [ ! -f "$file" ]; then
               echo "ERROR: $file was not generated"
               exit 1
