@@ -989,7 +989,7 @@ def _scrape_posts_sequential(
             label="Scraping posts",
             item_show_func=_truncate_title,
             fill_char=click.style("█", fg="blue"),
-            empty_char=click.style("░", fg="blue"),
+            empty_char=click.style("░", dim=True),
             color=True,
         ) as bar:
             for i, item in enumerate(bar, 1):
@@ -1040,7 +1040,7 @@ def _scrape_posts_concurrent(
                 label="Scraping posts",
                 item_show_func=_truncate_title,
                 fill_char=click.style("█", fg="blue"),
-                empty_char=click.style("░", fg="blue"),
+                empty_char=click.style("░", dim=True),
                 color=True,
             ) as bar:
                 for future in as_completed(future_to_index):
