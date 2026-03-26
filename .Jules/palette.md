@@ -9,3 +9,7 @@
 ## 2025-03-25 - Improve CLI Progress Bar Color Contrast
 **Learning:** Using the same color (e.g., `fg="blue"`) for both the filled and empty characters in a CLI progress bar significantly reduces visual contrast, making it harder to read the bar's progress at a glance, especially on lower-contrast dark terminal backgrounds.
 **Action:** Always ensure high visual contrast between filled and empty portions of a progress bar. For example, in `click.progressbar`, use a distinct color or apply `dim=True` to the `empty_char` (e.g., `empty_char=click.style("░", dim=True)`) to make the filled portion clearly stand out.
+
+## 2025-03-26 - Add helpful call-to-action after CLI commands
+**Learning:** Users often run a partial CLI command (like `scrape`) and aren't immediately sure what the next logical command is (like `convert`), increasing cognitive load and reducing feature discoverability.
+**Action:** Always append a visually distinct "Hint: Run <next command>" message with a helpful call-to-action to success outputs of intermediate commands, guiding the user smoothly through the intended multi-step workflow.

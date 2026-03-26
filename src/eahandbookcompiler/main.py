@@ -112,7 +112,10 @@ def build(
         raise click.ClickException(str(e)) from e
 
     if not handbook.posts:
-        raise click.ClickException("No posts were found. Aborting.")
+        raise click.ClickException(
+            "No posts were found. The EA Forum structure might have changed, "
+            "or your internet connection is down. Aborting.",
+        )
 
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -230,7 +233,10 @@ def scrape(
         raise click.ClickException(str(e)) from e
 
     if not handbook.posts:
-        raise click.ClickException("No posts were found. Aborting.")
+        raise click.ClickException(
+            "No posts were found. The EA Forum structure might have changed, "
+            "or your internet connection is down. Aborting.",
+        )
 
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -251,6 +257,11 @@ def scrape(
 
     click.secho("\n✨ Scrape complete!", fg="green", bold=True)
     click.echo(f"Markdown written to: {click.style(str(path), fg='cyan')} ({_format_size(path)})")
+    click.echo(
+        f"\n💡 {click.style('Hint:', fg='yellow', bold=True)} Run "
+        f"{click.style(f'python -m eahandbookcompiler convert {path}', bold=True)} "
+        f"to generate an EPUB and PDF."
+    )
 
 
 @cli.command()
