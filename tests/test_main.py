@@ -78,7 +78,7 @@ def test_build_no_posts(mock_scrape_all):
     result = runner.invoke(build)
 
     assert result.exit_code != 0
-    assert "No posts were found. Aborting." in result.output
+    assert "No posts were found. The EA Forum structure might have changed" in result.output
     mock_scrape_all.assert_called_once()
 
 
@@ -133,7 +133,7 @@ def test_scrape_no_posts(mock_scrape_all):
     result = runner.invoke(scrape)
 
     assert result.exit_code != 0
-    assert "No posts were found. Aborting." in result.output
+    assert "No posts were found. The EA Forum structure might have changed" in result.output
     mock_scrape_all.assert_called_once()
 
 
