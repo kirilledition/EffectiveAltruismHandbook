@@ -338,6 +338,12 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                             if qs.get("url"):
                                 val = qs["url"][0]
 
+                                # Re-validate unwrapped URL to prevent XSS bypass
+                                unwrapped_cleaned = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
+                                if unwrapped_cleaned.startswith(_DANGEROUS_SCHEMES):
+                                    del element[attr]
+                                    continue
+
                         element[attr] = val
 
     # Remove standard Creative Commons license footers

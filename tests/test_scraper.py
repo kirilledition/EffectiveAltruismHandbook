@@ -1254,6 +1254,7 @@ def test_html_to_markdown_xss_evasion():
     <a href="https://example.com">safe</a>
     <a href="mailto:test@example.com">safe mailto</a>
     <a href="/relative/path">relative</a>
+    <a href="/out?url=javascript:alert(1)">outbound xss</a>
     </div>"""
     soup = BeautifulSoup(html, "lxml")
     tag = soup.find("div")
@@ -1268,6 +1269,8 @@ def test_html_to_markdown_xss_evasion():
     assert "[safe](https://example.com)" in md
     assert "[safe mailto](mailto:test@example.com)" in md
     assert "[relative](https://forum.effectivealtruism.org/relative/path)" in md
+    assert "outbound xss" in md
+    assert "javascript:" not in md
 
 
 class TestFetchUnsafePort:
