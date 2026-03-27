@@ -949,10 +949,10 @@ def scrape_all(
         session = make_session()
 
     if verbose:
-        click.echo(f"Fetching handbook index from {HANDBOOK_URL} …")
+        click.echo(f"🔍 Fetching handbook index from {HANDBOOK_URL} …")
         posts = scrape_handbook_index(session)
     else:
-        click.secho("Fetching handbook index... ", fg="blue", nl=False)
+        click.secho("🔍 Fetching handbook index... ", fg="blue", nl=False)
         try:
             posts = scrape_handbook_index(session)
         except Exception as e:

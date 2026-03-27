@@ -120,7 +120,7 @@ def build(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("Building markdown... ", fg="blue", nl=False)
+    click.secho("📝 Building markdown... ", fg="blue", nl=False)
     try:
         md_path = handbook_to_markdown(
             handbook,
@@ -134,7 +134,7 @@ def build(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("Building epub... ", fg="blue", nl=False)
+    click.secho("📚 Building epub... ", fg="blue", nl=False)
     try:
         epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
     except Exception as e:
@@ -143,7 +143,7 @@ def build(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("Building pdf... ", fg="blue", nl=False)
+    click.secho("📄 Building pdf... ", fg="blue", nl=False)
     try:
         pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
     except Exception as e:
@@ -154,9 +154,9 @@ def build(
 
     click.secho("\n✨ Build complete!", fg="green", bold=True)
     click.echo("Output files:")
-    click.echo(f"  markdown: {click.style(str(md_path), fg='cyan')} ({_format_size(md_path)})")
-    click.echo(f"  epub:     {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
-    click.echo(f"  pdf:      {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")
+    click.echo(f"  📝 markdown: {click.style(str(md_path), fg='cyan')} ({_format_size(md_path)})")
+    click.echo(f"  📚 epub:     {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
+    click.echo(f"  📄 pdf:      {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")
 
 
 @cli.command()
@@ -241,7 +241,7 @@ def scrape(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("Building markdown... ", fg="blue", nl=False)
+    click.secho("📝 Building markdown... ", fg="blue", nl=False)
     try:
         path = handbook_to_markdown(
             handbook,
@@ -256,7 +256,7 @@ def scrape(
         click.secho("✓ Done.", fg="green")
 
     click.secho("\n✨ Scrape complete!", fg="green", bold=True)
-    click.echo(f"Markdown written to: {click.style(str(path), fg='cyan')} ({_format_size(path)})")
+    click.echo(f"📝 Markdown written to: {click.style(str(path), fg='cyan')} ({_format_size(path)})")
     click.echo(
         f"\n💡 {click.style('Hint:', fg='yellow', bold=True)} Run "
         f"{click.style(f'python -m eahandbookcompiler convert {path}', bold=True)} "
@@ -286,7 +286,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("Building epub... ", fg="blue", nl=False)
+    click.secho("📚 Building epub... ", fg="blue", nl=False)
     try:
         epub_path = convert_to_epub(
             markdown_path,
@@ -298,7 +298,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("Building pdf... ", fg="blue", nl=False)
+    click.secho("📄 Building pdf... ", fg="blue", nl=False)
     try:
         pdf_path = convert_to_pdf(
             markdown_path,
@@ -312,5 +312,5 @@ def convert(markdown_file: str, output_dir: str) -> None:
 
     click.secho("\n✨ Conversion complete!", fg="green", bold=True)
     click.echo("Output files:")
-    click.echo(f"  epub: {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
-    click.echo(f"  pdf:  {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")
+    click.echo(f"  📚 epub: {click.style(str(epub_path), fg='cyan')} ({_format_size(epub_path)})")
+    click.echo(f"  📄 pdf:  {click.style(str(pdf_path), fg='cyan')} ({_format_size(pdf_path)})")
