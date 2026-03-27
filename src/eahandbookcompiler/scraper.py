@@ -329,11 +329,6 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                         # Using string `startswith` before `urlparse()` speeds up resolution
                         # by ~2x for standard absolute links (which comprise 99% of forum URLs)
                         # by bypassing scheme normalization.
-                        if not val.startswith(("http://", "https://", "#", "mailto:", "tel:")):
-                            parsed_val = urlparse(val)
-                            if not parsed_val.scheme:
-                                val = urljoin(BASE_URL, val)
-
                         # UX Enhancement: Unwrap EA Forum outbound link redirects (/out?url=...)
                         # so readers can access external links directly when reading offline,
                         # without relying on the forum's redirect service.
@@ -351,6 +346,15 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                                 if unwrapped_cleaned.startswith(_DANGEROUS_SCHEMES):
                                     del element[attr]
                                     continue
+
+                        # ⚡ Bolt Optimization: Fast-path string check bypasses heavy URL parsing.
+                        # Using string `startswith` before `urlparse()` speeds up resolution
+                        # by ~2x for standard absolute links (which comprise 99% of forum URLs)
+                        # by bypassing scheme normalization.
+                        if not val.startswith(("http://", "https://", "#", "mailto:", "tel:")):
+                            parsed_val = urlparse(val)
+                            if not parsed_val.scheme:
+                                val = urljoin(BASE_URL, val)
 
                         element[attr] = val
 

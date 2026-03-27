@@ -1604,3 +1604,20 @@ class TestConcurrentDelay:
 
         # No sleep calls should be made when delay is 0
         mock_sleep.assert_not_called()
+
+
+class TestLFIPrevention:
+    def test_outbound_redirect_lfi_prevention(self):
+        """Test that unwrapping outbound links does not produce relative paths vulnerable to LFI."""
+        from bs4 import BeautifulSoup
+
+        from eahandbookcompiler.scraper import html_to_markdown
+
+        # Simulating an unwrapped URL that points to a local file
+        html = '<img src="https://forum.effectivealtruism.org/out?url=/etc/passwd">'
+        soup = BeautifulSoup(html, "lxml")
+
+        md = html_to_markdown(soup)
+
+        # The result should be absolute and prefixed with BASE_URL, not just '/etc/passwd'
+        assert md == "![](https://forum.effectivealtruism.org/etc/passwd)"
