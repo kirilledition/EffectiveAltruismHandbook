@@ -1255,6 +1255,9 @@ def test_html_to_markdown_xss_evasion():
     <a href="mailto:test@example.com">safe mailto</a>
     <a href="/relative/path">relative</a>
     <a href="/out?url=javascript:alert(1)">outbound xss</a>
+    <video poster="javascript:alert(1)" src="javascript:alert(2)"></video>
+    <audio src="javascript:alert(1)"></audio>
+    <track src="javascript:alert(1)">
     </div>"""
     soup = BeautifulSoup(html, "lxml")
     tag = soup.find("div")
