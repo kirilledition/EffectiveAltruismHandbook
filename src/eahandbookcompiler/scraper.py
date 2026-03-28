@@ -317,6 +317,12 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                 elif "comments" in classes.lower():
                     element.decompose()
         elif tag_name in _SANITIZE_TAGS:
+            # UX Enhancement: Ensure images have an alt attribute for accessibility.
+            # If missing or empty, assign a fallback to prevent screen readers
+            # from reading out long, raw image URLs in offline formats (EPUB/PDF).
+            if tag_name == "img" and not element.get("alt"):
+                element["alt"] = "Image"
+
             # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
             for attr in ("href", "src", "data"):
                 val = element.get(attr)

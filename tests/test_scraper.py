@@ -1239,6 +1239,28 @@ class TestScrapeAllVerbose:
         assert "Fetching handbook index" in captured.out
 
 
+def test_html_to_markdown_adds_fallback_alt_text():
+    """Test that missing or empty alt attributes are populated with a fallback."""
+    from bs4 import BeautifulSoup
+
+    from eahandbookcompiler.scraper import html_to_markdown
+
+    html_no_alt = '<img src="https://example.com/image.jpg" />'
+    soup_no_alt = BeautifulSoup(html_no_alt, "lxml")
+    md_no_alt = html_to_markdown(soup_no_alt)
+    assert md_no_alt == "![Image](https://example.com/image.jpg)"
+
+    html_empty_alt = '<img src="https://example.com/image.jpg" alt="" />'
+    soup_empty_alt = BeautifulSoup(html_empty_alt, "lxml")
+    md_empty_alt = html_to_markdown(soup_empty_alt)
+    assert md_empty_alt == "![Image](https://example.com/image.jpg)"
+
+    html_alt = '<img src="https://example.com/image.jpg" alt="A nice image" />'
+    soup_alt = BeautifulSoup(html_alt, "lxml")
+    md_alt = html_to_markdown(soup_alt)
+    assert md_alt == "![A nice image](https://example.com/image.jpg)"
+
+
 def test_html_to_markdown_xss_evasion():
     """Test that XSS evasion techniques on href/src attributes are stripped correctly."""
     html = """<div>
@@ -1620,4 +1642,4 @@ class TestLFIPrevention:
         md = html_to_markdown(soup)
 
         # The result should be absolute and prefixed with BASE_URL, not just '/etc/passwd'
-        assert md == "![](https://forum.effectivealtruism.org/etc/passwd)"
+        assert md == "![Image](https://forum.effectivealtruism.org/etc/passwd)"

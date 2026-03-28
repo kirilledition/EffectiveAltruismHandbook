@@ -13,3 +13,7 @@
 ## 2025-03-26 - Add helpful call-to-action after CLI commands
 **Learning:** Users often run a partial CLI command (like `scrape`) and aren't immediately sure what the next logical command is (like `convert`), increasing cognitive load and reducing feature discoverability.
 **Action:** Always append a visually distinct "Hint: Run <next command>" message with a helpful call-to-action to success outputs of intermediate commands, guiding the user smoothly through the intended multi-step workflow.
+
+## 2026-03-28 - Add fallback alt text to images for offline accessibility
+**Learning:** When HTML `<img>` tags without `alt` attributes are converted to Markdown (rendered as `![](url)`) and then compiled into offline formats like EPUB or PDF, screen readers will often read out the raw, unhelpful image URL. This severely degrades the accessibility of offline documents.
+**Action:** Always ensure a fallback `alt` text (e.g., `alt="Image"`) is assigned to images during HTML sanitization if they lack one. This prevents screen readers from vocalizing long image URLs to visually impaired users.
