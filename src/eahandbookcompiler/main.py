@@ -120,7 +120,7 @@ def build(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("📝 Building markdown... ", fg="blue", nl=False)
+    click.secho("📝 Building markdown... ", fg="cyan", nl=False)
     try:
         md_path = handbook_to_markdown(
             handbook,
@@ -134,7 +134,7 @@ def build(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("📚 Building epub... ", fg="blue", nl=False)
+    click.secho("📚 Building epub... ", fg="cyan", nl=False)
     try:
         epub_path = convert_to_epub(md_path, out_path / "eahandbookcompiler.epub")
     except Exception as e:
@@ -143,7 +143,7 @@ def build(
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("📄 Building pdf... ", fg="blue", nl=False)
+    click.secho("📄 Building pdf... ", fg="cyan", nl=False)
     try:
         pdf_path = convert_to_pdf(md_path, out_path / "eahandbookcompiler.pdf")
     except Exception as e:
@@ -241,7 +241,7 @@ def scrape(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("📝 Building markdown... ", fg="blue", nl=False)
+    click.secho("📝 Building markdown... ", fg="cyan", nl=False)
     try:
         path = handbook_to_markdown(
             handbook,
@@ -286,7 +286,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    click.secho("📚 Building epub... ", fg="blue", nl=False)
+    click.secho("📚 Building epub... ", fg="cyan", nl=False)
     try:
         epub_path = convert_to_epub(
             markdown_path,
@@ -298,7 +298,7 @@ def convert(markdown_file: str, output_dir: str) -> None:
     else:
         click.secho("✓ Done.", fg="green")
 
-    click.secho("📄 Building pdf... ", fg="blue", nl=False)
+    click.secho("📄 Building pdf... ", fg="cyan", nl=False)
     try:
         pdf_path = convert_to_pdf(
             markdown_path,
