@@ -17,3 +17,7 @@
 ## 2026-03-28 - Add fallback alt text to images for offline accessibility
 **Learning:** When HTML `<img>` tags without `alt` attributes are converted to Markdown (rendered as `![](url)`) and then compiled into offline formats like EPUB or PDF, screen readers will often read out the raw, unhelpful image URL. This severely degrades the accessibility of offline documents.
 **Action:** Always ensure a fallback `alt` text (e.g., `alt="Image"`) is assigned to images during HTML sanitization if they lack one. This prevents screen readers from vocalizing long image URLs to visually impaired users.
+
+## 2025-03-29 - Improve Terminal Color Contrast for Accessibility
+**Learning:** Standard ANSI blue (`\033[34m` or `fg="blue"`) has notoriously poor contrast and is often unreadable against default dark terminal backgrounds, causing accessibility issues for informational UI text and progress indicators.
+**Action:** When printing status messages or filling progress bars in CLI tools, use cyan (`fg="cyan"`) instead of blue. Cyan has a much higher relative luminance, ensuring clear readability and sufficient visual contrast on dark backgrounds while remaining distinctly different from success (green) or error (red) colors.

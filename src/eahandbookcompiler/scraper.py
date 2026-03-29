@@ -971,7 +971,7 @@ def scrape_all(
         click.echo(f"🔍 Fetching handbook index from {HANDBOOK_URL} …")
         posts = scrape_handbook_index(session)
     else:
-        click.secho("🔍 Fetching handbook index... ", fg="blue", nl=False)
+        click.secho("🔍 Fetching handbook index... ", fg="cyan", nl=False)
         try:
             posts = scrape_handbook_index(session)
         except Exception as e:
@@ -1026,7 +1026,7 @@ def _scrape_posts_sequential(
             posts,
             label="Scraping posts",
             item_show_func=_truncate_title,
-            fill_char=click.style("█", fg="blue"),
+            fill_char=click.style("█", fg="cyan"),
             empty_char=click.style("░", dim=True),
             color=True,
         ) as bar:
@@ -1077,7 +1077,7 @@ def _scrape_posts_concurrent(
                 length=total,
                 label="Scraping posts",
                 item_show_func=_truncate_title,
-                fill_char=click.style("█", fg="blue"),
+                fill_char=click.style("█", fg="cyan"),
                 empty_char=click.style("░", dim=True),
                 color=True,
             ) as bar:
