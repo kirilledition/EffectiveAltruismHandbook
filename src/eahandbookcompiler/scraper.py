@@ -12,7 +12,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from urllib.parse import ParseResult, parse_qs, unquote
 from urllib.parse import urljoin as _urljoin
 from urllib.parse import urlparse as _urlparse
@@ -1008,7 +1008,7 @@ def _truncate_title(item: str | Post | None) -> str:
 def _get_item_from_bar(item: Post | str | None) -> Post:
     """Extract a Post from the progress bar item for type checking."""
     # This is a safe cast because click.progressbar yields the items from the original list
-    return item  # type: ignore[return-value]
+    return cast("Post", item)
 
 
 def _scrape_posts_sequential(
