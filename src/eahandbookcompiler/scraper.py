@@ -323,6 +323,11 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
             if tag_name == "img" and not element.get("alt"):
                 element["alt"] = "Image"
 
+            # UX Enhancement: Ensure embedded frames have a title for accessibility.
+            # If missing, screen readers in offline formats (EPUB/PDF) will read the raw URL.
+            if tag_name in ("iframe", "object", "embed") and not element.get("title"):
+                element["title"] = "Embedded content"
+
             # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
             for attr in ("href", "src", "data", "poster"):
                 val = element.get(attr)

@@ -21,3 +21,7 @@
 ## 2025-03-29 - Improve Terminal Color Contrast for Accessibility
 **Learning:** Standard ANSI blue (`\033[34m` or `fg="blue"`) has notoriously poor contrast and is often unreadable against default dark terminal backgrounds, causing accessibility issues for informational UI text and progress indicators.
 **Action:** When printing status messages or filling progress bars in CLI tools, use cyan (`fg="cyan"`) instead of blue. Cyan has a much higher relative luminance, ensuring clear readability and sufficient visual contrast on dark backgrounds while remaining distinctly different from success (green) or error (red) colors.
+
+## 2025-03-30 - Add title attribute to embedded iframes for screen reader accessibility
+**Learning:** When embedded content tags like `<iframe>`, `<object>`, or `<embed>` lack a `title` attribute, screen readers navigating the compiled EPUB or PDF often read out the raw source URL or unhelpfully announce "frame", causing a poor accessibility experience.
+**Action:** Always ensure a fallback `title` attribute (e.g., `title="Embedded content"`) is assigned to embedding tags during HTML sanitization if they lack one. This provides immediate context to visually impaired users reading the offline document.
