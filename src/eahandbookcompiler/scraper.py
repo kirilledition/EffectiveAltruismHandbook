@@ -317,6 +317,14 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                 elif "comments" in classes.lower():
                     element.decompose()
         elif tag_name in _SANITIZE_TAGS:
+            # UX Enhancement: Ensure icon-only or empty links have accessible text.
+            # When converting to Markdown, <a> tags without visible text (e.g. relying
+            # on aria-label or title attributes for icon links) are silently dropped.
+            if tag_name == "a" and not element.get_text(strip=True) and not element.find("img"):
+                fallback = element.get("aria-label") or element.get("title")
+                if fallback and isinstance(fallback, str):
+                    element.string = fallback
+
             # UX Enhancement: Ensure images have an alt attribute for accessibility.
             # If missing or empty, assign a fallback to prevent screen readers
             # from reading out long, raw image URLs in offline formats (EPUB/PDF).
