@@ -25,3 +25,7 @@
 ## 2025-03-30 - Add title attribute to embedded iframes for screen reader accessibility
 **Learning:** When embedded content tags like `<iframe>`, `<object>`, or `<embed>` lack a `title` attribute, screen readers navigating the compiled EPUB or PDF often read out the raw source URL or unhelpfully announce "frame", causing a poor accessibility experience.
 **Action:** Always ensure a fallback `title` attribute (e.g., `title="Embedded content"`) is assigned to embedding tags during HTML sanitization if they lack one. This provides immediate context to visually impaired users reading the offline document.
+
+## 2025-03-31 - Preserve icon-only links during Markdown conversion
+**Learning:** During HTML-to-Markdown conversion with tools like `markdownify`, `<a>` tags that rely solely on `aria-label` or `title` attributes (e.g., icon-only links with `<i class="icon"></i>`) are omitted from the output because they lack visible text content. This silently breaks link accessibility and navigation in generated offline formats like EPUB or PDF.
+**Action:** Before converting HTML to Markdown, always inspect `<a>` tags. If a link has no visible text and contains no images, extract its `aria-label` or `title` attribute and explicitly assign it as the element's text content. This ensures the link and its accessible name are properly rendered in the final Markdown.
