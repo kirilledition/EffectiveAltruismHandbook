@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -159,33 +158,11 @@ def handbook_to_markdown(
     return output_path
 
 
-CODE_BLOCK_RE = re.compile(r"^(```|~~~)")
-
 # CommonMark allows up to 3 leading spaces before ATX headings.
 _MAX_HEADING_INDENT = 3
 
 
-def _demote_line(line: str, levels: int) -> str | None:
-    """Return the demoted heading line, or ``None`` if *line* is not a heading."""
-    first = line[0]
-    if not (first == "#" or (first == " " and "#" in line[1:4])):
-        return None
-
-    stripped = line.lstrip(" ")
-    leading_spaces = len(line) - len(stripped)
-    if leading_spaces > _MAX_HEADING_INDENT or not stripped.startswith("#"):
-        return None
-
-    stripped_hashes = stripped.lstrip("#")
-    if not stripped_hashes or not stripped_hashes.startswith(" "):
-        return None
-
-    existing_hashes = len(stripped) - len(stripped_hashes)
-    new_level = min(existing_hashes + levels, 6)
-    return " " * leading_spaces + "#" * new_level + stripped_hashes
-
-
-def demote_headings(text: str, levels: int = 2) -> str:
+def demote_headings(text: str, levels: int = 2) -> str:  # noqa: C901
     """Increase all ATX heading levels by *levels*, ignoring code blocks.
 
     For example, with ``levels=2`` a ``# Heading`` becomes ``### Heading``.
@@ -216,26 +193,40 @@ def demote_headings(text: str, levels: int = 2) -> str:
         # speeding up this function by ~35%.
         # Per CommonMark, ATX headings may have 0-3 leading spaces before the first `#`.
         if not in_code_block:
-            demoted = _demote_line(line, levels)
-            if demoted is not None:
-                result.append(demoted)
-                continue
+            first = line[0]
+            if first == "#":
+                stripped_hashes = line.lstrip("#")
+                if stripped_hashes and stripped_hashes[0] == " ":
+                    existing_hashes = len(line) - len(stripped_hashes)
+                    new_level = min(existing_hashes + levels, 6)
+                    result.append("#" * new_level + stripped_hashes)
+                    continue
+            elif first == " " and "#" in line[1:4]:
+                stripped = line.lstrip(" ")
+                leading_spaces = len(line) - len(stripped)
+                if leading_spaces <= _MAX_HEADING_INDENT and stripped.startswith("#"):
+                    stripped_hashes = stripped.lstrip("#")
+                    if stripped_hashes and stripped_hashes[0] == " ":
+                        existing_hashes = len(stripped) - len(stripped_hashes)
+                        new_level = min(existing_hashes + levels, 6)
+                        result.append(" " * leading_spaces + "#" * new_level + stripped_hashes)
+                        continue
 
         # Use fast `in` check before performing exact boundary matching
         if "`" in line or "~" in line:
             stripped = line.lstrip()
             if stripped.startswith(("```", "~~~")):
-                match = CODE_BLOCK_RE.match(stripped)
-                if match:
-                    marker = match.group(1)
-                    if not in_code_block:
-                        in_code_block = True
-                        code_block_marker = marker
-                    elif marker == code_block_marker:
-                        in_code_block = False
-                        code_block_marker = None
-                    result.append(line)
-                    continue
+                # ⚡ Bolt Optimization: Replace slow regex evaluation with fast string slicing
+                # for code block markers, avoiding `re.match` entirely.
+                marker = stripped[:3]
+                if not in_code_block:
+                    in_code_block = True
+                    code_block_marker = marker
+                elif marker == code_block_marker:
+                    in_code_block = False
+                    code_block_marker = None
+                result.append(line)
+                continue
 
         result.append(line)
 
