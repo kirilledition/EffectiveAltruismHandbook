@@ -1630,7 +1630,6 @@ class TestConcurrentDelay:
         # No sleep calls should be made when delay is 0
         mock_sleep.assert_not_called()
 
-
     def test_removes_aria_hidden_elements(self):
         """Test that elements with aria-hidden="true" are removed to improve accessibility."""
         from bs4 import BeautifulSoup
