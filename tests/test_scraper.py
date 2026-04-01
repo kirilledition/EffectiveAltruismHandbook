@@ -1630,6 +1630,29 @@ class TestConcurrentDelay:
         # No sleep calls should be made when delay is 0
         mock_sleep.assert_not_called()
 
+    def test_removes_aria_hidden_elements(self):
+        """Test that elements with aria-hidden="true" are removed to improve accessibility."""
+        from bs4 import BeautifulSoup
+
+        from eahandbookcompiler.scraper import html_to_markdown
+
+        html = (
+            "<div>"
+            "<p>Visible paragraph</p>"
+            '<p aria-hidden="true">Hidden paragraph</p>'
+            '<svg aria-hidden="true"><path/></svg>'
+            '<span>Visible <span aria-hidden="true">hidden text</span> span</span>'
+            "</div>"
+        )
+        soup = BeautifulSoup(html, "lxml").find("div")
+        assert soup is not None
+        md = html_to_markdown(soup)
+
+        assert "Visible paragraph" in md
+        assert "Visible span" in md or "Visible  span" in md
+        assert "Hidden paragraph" not in md
+        assert "hidden text" not in md
+
 
 class TestLFIPrevention:
     def test_outbound_redirect_lfi_prevention(self):

@@ -29,3 +29,7 @@
 ## 2025-03-31 - Preserve icon-only links during Markdown conversion
 **Learning:** During HTML-to-Markdown conversion with tools like `markdownify`, `<a>` tags that rely solely on `aria-label` or `title` attributes (e.g., icon-only links with `<i class="icon"></i>`) are omitted from the output because they lack visible text content. This silently breaks link accessibility and navigation in generated offline formats like EPUB or PDF.
 **Action:** Before converting HTML to Markdown, always inspect `<a>` tags. If a link has no visible text and contains no images, extract its `aria-label` or `title` attribute and explicitly assign it as the element's text content. This ensures the link and its accessible name are properly rendered in the final Markdown.
+
+## 2026-03-31 - Remove aria-hidden elements for offline accessibility
+**Learning:** Elements marked with `aria-hidden="true"` are intended to be ignored by screen readers. When scraping HTML and converting to offline formats like Markdown/EPUB/PDF, preserving the text content of these elements causes screen readers to read out text that was meant to be hidden, severely degrading the accessibility experience.
+**Action:** Always decompose/remove elements with `aria-hidden="true"` before converting HTML to offline readable formats.
