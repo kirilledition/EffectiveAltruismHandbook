@@ -295,6 +295,13 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
     Returns:
         Cleaned markdown string.
     """
+    # UX Enhancement: Screen readers read out elements marked with aria-hidden="true"
+    # when they are converted to Markdown and subsequently to EPUB/PDF offline formats,
+    # severely degrading the accessibility experience. We must explicitly remove them
+    # before conversion so they don't pollute the offline reading experience.
+    for hidden in html_element.find_all(attrs={"aria-hidden": "true"}):
+        hidden.decompose()
+
     # ⚡ Bolt Optimization: Combine find_all searches into a single fast pass.
     # This replaces 3 separate O(N) DOM traversals with exactly 1.
     for element in html_element.find_all(_HTML_TAGS_TO_FILTER):
