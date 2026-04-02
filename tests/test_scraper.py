@@ -637,6 +637,7 @@ class TestConvertToEpub:
                 str(markdown_path),
                 "--from=markdown",
                 "--to=epub3",
+                "--sandbox",
                 f"--output={test_output_path}",
                 "--toc-depth=2",
                 "--split-level=2",
@@ -662,7 +663,7 @@ class TestConvertToPdf:
 
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
-        assert "--sandbox" not in args
+        assert "--sandbox" in args
         assert f"--css={test_output_path.parent / 'pdf.css'}" in args
 
 
