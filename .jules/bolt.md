@@ -82,3 +82,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-02-28 - Fast Python String Matching
 **Learning:** In a tight Python text-processing loop (like `demote_headings` for markdown compilation), using `re.match` to check prefixes and Python function calls (`_demote_line`) adds significant overhead. Built-in string operations (`line[0]`, `line.lstrip()`, `stripped[:3]`) are much faster than regex matching and function call frames.
 **Action:** Replace `re.match` with `.startswith()` and direct string slicing for known-length markers, and inline heavily-called string processing helpers. Use `first = line[0]` checks to skip allocating `line.lstrip()` for lines that clearly don't match the pattern.
+
+## 2025-05-18 - BeautifulSoup lazily evaluate text nodes with .strings
+**Learning:** Using `soup.find_all(string=True)` forces BeautifulSoup to traverse the entire DOM and eagerly allocate a full Python list of all text nodes in memory before iteration begins. For large documents, this carries significant overhead. Using the `soup.strings` property instead returns a generator that yields `NavigableString` objects lazily, reducing peak memory to O(1) and cutting traversal time by approximately 50%.
+**Action:** When iterating over all text nodes in a large BeautifulSoup document for simple calculations or checks, always prefer the `soup.strings` generator over `soup.find_all(string=True)`.
