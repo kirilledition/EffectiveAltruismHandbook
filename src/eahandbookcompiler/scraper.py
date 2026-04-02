@@ -295,6 +295,11 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
     Returns:
         Cleaned markdown string.
     """
+    # UX Enhancement: Remove elements marked with aria-hidden="true" to prevent
+    # screen readers from verbalizing them in generated offline formats.
+    for element in html_element.find_all(attrs={"aria-hidden": "true"}):
+        element.decompose()
+
     # ⚡ Bolt Optimization: Combine find_all searches into a single fast pass.
     # This replaces 3 separate O(N) DOM traversals with exactly 1.
     for element in html_element.find_all(_HTML_TAGS_TO_FILTER):
