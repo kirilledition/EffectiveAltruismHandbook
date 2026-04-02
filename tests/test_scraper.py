@@ -856,6 +856,14 @@ class TestHtmlToMarkdownStripping:
         assert ".x{}" not in markdown
         assert "No JS" not in markdown
 
+    def test_removes_aria_hidden(self):
+        html = '<div><p>Visible</p><span aria-hidden="true">Hidden</span></div>'
+        element = BeautifulSoup(html, "lxml").find("div")
+        assert element is not None
+        markdown = html_to_markdown(element)
+        assert "Visible" in markdown
+        assert "Hidden" not in markdown
+
 
 class TestExtractAuthorJsonLdEdgeCases:
     def test_invalid_json_skipped(self):
