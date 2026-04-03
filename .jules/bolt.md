@@ -86,3 +86,11 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-05-18 - BeautifulSoup lazily evaluate text nodes with .strings
 **Learning:** Using `soup.find_all(string=True)` forces BeautifulSoup to traverse the entire DOM and eagerly allocate a full Python list of all text nodes in memory before iteration begins. For large documents, this carries significant overhead. Using the `soup.strings` property instead returns a generator that yields `NavigableString` objects lazily, reducing peak memory to O(1) and cutting traversal time by approximately 50%.
 **Action:** When iterating over all text nodes in a large BeautifulSoup document for simple calculations or checks, always prefer the `soup.strings` generator over `soup.find_all(string=True)`.
+
+## 2026-04-03 - Fast-path regex substitution in URL sanitization
+**Learning:** When using `re.sub` to clean control characters or whitespace from URLs, calling `.sub()` directly allocates new strings and incurs full regex substitution overhead. Using `.search()` first as a fast-path condition avoids this overhead and avoids string allocation for the vast majority of URLs that don't actually contain any whitespace.
+**Action:** When cleaning strings with regex where the target pattern is expected to be absent in the common case, always wrap the `.sub()` call with an `if pattern.search(string):` fast-path check.
+
+## 2026-04-03 - O(1) tag filtering for DOM cleaning
+**Learning:** When passing a list of tag names to BeautifulSoup's `find_all()` (e.g. `soup.find_all(['a', 'div', 'p', ...])`), BeautifulSoup internally iterates through the list for every element in the document, which creates an $O(N \times K)$ performance bottleneck where $K$ is the size of the list.
+**Action:** When filtering for multiple tag names using `find_all()`, wrap the tag name lookup in a lambda that performs an $O(1)$ set inclusion check: `soup.find_all(lambda tag: getattr(tag, "name", None) in MY_SET)`. This cuts evaluation time by half for large tag sets.
