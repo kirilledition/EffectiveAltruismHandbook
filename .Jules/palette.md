@@ -26,6 +26,10 @@
 **Learning:** When embedded content tags like `<iframe>`, `<object>`, or `<embed>` lack a `title` attribute, screen readers navigating the compiled EPUB or PDF often read out the raw source URL or unhelpfully announce "frame", causing a poor accessibility experience.
 **Action:** Always ensure a fallback `title` attribute (e.g., `title="Embedded content"`) is assigned to embedding tags during HTML sanitization if they lack one. This provides immediate context to visually impaired users reading the offline document.
 
+## 2026-04-01 - Expand `<abbr>` tags for offline accessibility
+**Learning:** During HTML-to-Markdown conversion, `<abbr>` tags are dropped, leaving only their inner text. Offline readers (e.g. in EPUB or PDF) cannot hover to see the `title` attribute, severely degrading the context and accessibility of acronyms and abbreviations.
+**Action:** Before converting HTML to Markdown, always inspect `<abbr>` tags. If an `<abbr>` tag has a `title` attribute, expand its text content by explicitly appending the title in parentheses (e.g., `element.string = f"{element.get_text()} ({title})"`). This ensures the abbreviation's full meaning is preserved in the offline text.
+
 ## 2025-03-31 - Preserve icon-only links during Markdown conversion
 **Learning:** During HTML-to-Markdown conversion with tools like `markdownify`, `<a>` tags that rely solely on `aria-label` or `title` attributes (e.g., icon-only links with `<i class="icon"></i>`) are omitted from the output because they lack visible text content. This silently breaks link accessibility and navigation in generated offline formats like EPUB or PDF.
 **Action:** Before converting HTML to Markdown, always inspect `<a>` tags. If a link has no visible text and contains no images, extract its `aria-label` or `title` attribute and explicitly assign it as the element's text content. This ensures the link and its accessible name are properly rendered in the final Markdown.
