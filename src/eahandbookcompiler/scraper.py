@@ -175,7 +175,14 @@ def _validate_url(url: str) -> str:
     if port not in (None, 80, 443):
         raise ValueError(f"Unsafe URL port: {port}")
 
-    return parsed.geturl()
+    # Reconstruct the network location using only the validated hostname and port
+    # to prevent parser differential bypasses (e.g. where `requests` interprets
+    # credentials or backslashes differently than `urllib.parse`).
+    port_str = f":{port}" if port is not None else ""
+    safe_netloc = f"{hostname}{port_str}"
+    safe_parsed = parsed._replace(netloc=safe_netloc)
+
+    return safe_parsed.geturl()
 
 
 def fetch(session: requests.Session, url: str) -> BeautifulSoup:
