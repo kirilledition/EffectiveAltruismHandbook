@@ -1248,6 +1248,25 @@ class TestScrapeAllVerbose:
         assert "Fetching handbook index" in captured.out
 
 
+def test_html_to_markdown_expands_abbr_tags():
+    """Test that <abbr> tags with title attributes are expanded to 'Text (Title)'."""
+    from bs4 import BeautifulSoup
+
+    from eahandbookcompiler.scraper import html_to_markdown
+
+    html_with_title = '<div>The <abbr title="World Health Organization">WHO</abbr> is an agency.</div>'
+    soup_with_title = BeautifulSoup(html_with_title, "lxml").find("div")
+    assert soup_with_title is not None
+    md_with_title = html_to_markdown(soup_with_title)
+    assert "The WHO (World Health Organization) is an agency." in md_with_title
+
+    html_without_title = "<div>The <abbr>WHO</abbr> is an agency.</div>"
+    soup_without_title = BeautifulSoup(html_without_title, "lxml").find("div")
+    assert soup_without_title is not None
+    md_without_title = html_to_markdown(soup_without_title)
+    assert "The WHO is an agency." in md_without_title
+
+
 def test_html_to_markdown_adds_fallback_alt_text():
     """Test that missing or empty alt attributes are populated with a fallback."""
     from bs4 import BeautifulSoup

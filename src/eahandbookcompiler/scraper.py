@@ -31,7 +31,7 @@ BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
 
 _DECOMPOSE_TAGS = frozenset(["nav", "footer", "script", "style", "noscript"])
-_SANITIZE_TAGS = frozenset(["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track"])
+_SANITIZE_TAGS = frozenset(["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track", "abbr"])
 _HTML_TAGS_TO_FILTER = list(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
 _DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
@@ -347,6 +347,15 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
             # If missing, screen readers in offline formats (EPUB/PDF) will read the raw URL.
             if tag_name in ("iframe", "object", "embed") and not element.get("title"):
                 element["title"] = "Embedded content"
+
+            # UX Enhancement: Expand <abbr> tags so their full meaning is accessible offline.
+            # markdownify drops <abbr> tags, leaving only their inner text. Offline readers
+            # cannot hover to see the title attribute. By explicitly appending the title to the
+            # text content, we ensure the abbreviation's meaning is preserved.
+            if tag_name == "abbr":
+                title_attr = element.get("title")
+                if title_attr and isinstance(title_attr, str):
+                    element.string = f"{element.get_text(strip=True)} ({title_attr.strip()})"
 
             # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
             for attr in ("href", "src", "data", "poster"):
