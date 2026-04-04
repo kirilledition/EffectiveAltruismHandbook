@@ -338,9 +338,10 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912
                     element.string = fallback
 
             # UX Enhancement: Ensure images have an alt attribute for accessibility.
-            # If missing or empty, assign a fallback to prevent screen readers
-            # from reading out long, raw image URLs in offline formats (EPUB/PDF).
-            if tag_name == "img" and not element.get("alt"):
+            # If missing, assign a fallback to prevent screen readers from reading
+            # out raw image URLs. However, intentionally empty alt texts (alt="")
+            # must be preserved so screen readers skip decorative images.
+            if tag_name == "img" and element.get("alt") is None:
                 element["alt"] = "Image"
 
             # UX Enhancement: Ensure embedded frames have a title for accessibility.

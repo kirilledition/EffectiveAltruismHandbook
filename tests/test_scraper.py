@@ -1268,7 +1268,7 @@ def test_html_to_markdown_expands_abbr_tags():
 
 
 def test_html_to_markdown_adds_fallback_alt_text():
-    """Test that missing or empty alt attributes are populated with a fallback."""
+    """Test that missing alt attributes get a fallback, while empty ones are preserved."""
     from bs4 import BeautifulSoup
 
     from eahandbookcompiler.scraper import html_to_markdown
@@ -1281,7 +1281,7 @@ def test_html_to_markdown_adds_fallback_alt_text():
     html_empty_alt = '<img src="https://example.com/image.jpg" alt="" />'
     soup_empty_alt = BeautifulSoup(html_empty_alt, "lxml")
     md_empty_alt = html_to_markdown(soup_empty_alt)
-    assert md_empty_alt == "![Image](https://example.com/image.jpg)"
+    assert md_empty_alt == "![](https://example.com/image.jpg)"
 
     html_alt = '<img src="https://example.com/image.jpg" alt="A nice image" />'
     soup_alt = BeautifulSoup(html_alt, "lxml")
