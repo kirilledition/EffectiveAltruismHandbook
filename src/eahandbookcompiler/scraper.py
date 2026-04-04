@@ -271,6 +271,9 @@ def is_ea_forum_post(url: str) -> bool:
     hostname = parsed.hostname or ""
 
     # Only allow EA Forum URLs (or relative URLs with no hostname)
+    # Require an explicit hostname if a scheme is present to prevent empty host bypasses (e.g. http:///posts/)
+    if parsed.scheme and not hostname:
+        return False
     if hostname not in ("forum.effectivealtruism.org", ""):
         return False
 

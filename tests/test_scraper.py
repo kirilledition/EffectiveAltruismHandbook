@@ -1674,3 +1674,18 @@ class TestLFIPrevention:
 
         # The result should be absolute and prefixed with BASE_URL, not just '/etc/passwd'
         assert md == "![Image](https://forum.effectivealtruism.org/etc/passwd)"
+
+
+class TestIsEaForumPostEmptyHost:
+    def test_empty_host_with_scheme_rejected(self):
+        """Test that URLs with a scheme but no host (like http:///posts/) are rejected to prevent DoS."""
+        from eahandbookcompiler.scraper import is_ea_forum_post
+
+        assert not is_ea_forum_post("http:///posts/123")
+        assert not is_ea_forum_post("https:///posts/123")
+
+    def test_relative_path_allowed(self):
+        """Test that valid relative paths without a scheme are still allowed."""
+        from eahandbookcompiler.scraper import is_ea_forum_post
+
+        assert is_ea_forum_post("/posts/123")
