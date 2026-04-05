@@ -1203,7 +1203,7 @@ class TestProcessSinglePostCache:
         # Pre-populate cache
         import hashlib
 
-        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()
         cache_path = tmp_path / f"{url_hash}.json"
         cache_path.write_text(
             json.dumps({"markdown": "from cache", "author": "Cache", "posted_date": "2024-01-01"}),
