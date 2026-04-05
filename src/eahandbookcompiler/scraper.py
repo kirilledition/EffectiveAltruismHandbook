@@ -983,7 +983,7 @@ def _process_single_post(
         session = _thread_local.session
 
     if cache_dir is not None:
-        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()[:16]
+        url_hash = hashlib.sha256(post.url.encode("utf-8")).hexdigest()
         cache_path = cache_dir / f"{url_hash}.json"
         if _load_cached_post(cache_path, post):
             return True
