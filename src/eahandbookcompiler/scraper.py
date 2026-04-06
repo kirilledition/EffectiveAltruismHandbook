@@ -305,15 +305,29 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
     Returns:
         Cleaned markdown string.
     """
-    # UX Enhancement: Remove elements marked with aria-hidden="true" to prevent
-    # screen readers from verbalizing them in generated offline formats.
-    for element in html_element.find_all(attrs={"aria-hidden": "true"}):
-        element.decompose()
+    # ⚡ Bolt Optimization: Combine all node filtering into a single fast pass.
+    # This replaces multiple separate O(N) DOM traversals with exactly 1 iteration
+    # over `find_all(True)` (all tags), drastically reducing DOM scanning overhead.
+    for element in html_element.find_all(True):  # noqa: FBT003
+        if not element.name:
+            continue
 
-    # ⚡ Bolt Optimization: Combine find_all searches into a single fast pass.
-    # This replaces 3 separate O(N) DOM traversals with exactly 1.
-    for element in html_element.find_all(_HTML_TAGS_TO_FILTER):
+        # Safe decomposition: when a parent is decomposed, its children are unlinked
+        # and their `.parent` becomes `None`. Since `find_all(True)` evaluates eagerly
+        # and returns a flat list of all nodes, we must skip unlinked descendants to
+        # prevent runtime crashes when accessing their attributes.
+        if element.parent is None:
+            continue
+
+        # UX Enhancement: Remove elements marked with aria-hidden="true" to prevent
+        # screen readers from verbalizing them in generated offline formats.
+        if element.get("aria-hidden") == "true":
+            element.decompose()
+            continue
+
         tag_name = element.name
+        if tag_name not in _HTML_TAGS_TO_FILTER:
+            continue
 
         if tag_name in _DECOMPOSE_TAGS:
             element.decompose()
