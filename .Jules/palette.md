@@ -41,3 +41,7 @@
 ## 2026-04-03 - Preserve media tags as standard links for offline accessibility
 **Learning:** When HTML `<video>` and `<audio>` tags without text content are converted to Markdown (e.g. using `markdownify`), they are often stripped out or rendered as unhelpful empty links `[](src)`. This completely removes access to the media for users reading offline formats (like EPUB or PDF).
 **Action:** Before converting HTML to Markdown, convert `<video>` and `<audio>` tags into standard `<a>` tags. Move the `src` attribute to `href` and explicitly assign a fallback text description using the original tag's `aria-label`, `title`, or simply the tag name. This ensures the media remains accessible as a clear, descriptive link in the generated offline formats.
+
+## 2025-04-04 - Preserve `<summary>` block structure for offline reading
+**Learning:** `markdownify` drops `<details>` and `<summary>` tags during HTML-to-Markdown conversion, causing collapsible/spoiler content to blend seamlessly into surrounding text without visual indication. This creates a confusing reading experience in offline formats (EPUB/PDF) where the content was originally hidden.
+**Action:** Before converting HTML to Markdown, convert `<summary>` tags to `<strong>` and prepend a visual indicator like `▶ ` (e.g., `element.name = "strong"; element.insert(0, "▶ ")`). This preserves the semantic structure visually, indicating to readers of offline formats that the following block of text is supplementary or a spoiler.

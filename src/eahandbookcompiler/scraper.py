@@ -31,7 +31,9 @@ BASE_URL = "https://forum.effectivealtruism.org"
 REQUEST_DELAY = 1.0  # seconds between requests
 
 _DECOMPOSE_TAGS = frozenset(["nav", "footer", "script", "style", "noscript"])
-_SANITIZE_TAGS = frozenset(["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track", "abbr"])
+_SANITIZE_TAGS = frozenset(
+    ["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track", "abbr", "summary"],
+)
 _HTML_TAGS_TO_FILTER = list(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
 _DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
@@ -375,6 +377,15 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
                 title_attr = element.get("title")
                 if title_attr and isinstance(title_attr, str):
                     element.string = f"{element.get_text(strip=True)} ({title_attr.strip()})"
+
+            # UX Enhancement: Preserve <summary> block structure for offline reading.
+            # markdownify strips <details> and <summary> tags, making collapsible
+            # content blend entirely into the surrounding text. We explicitly bold
+            # the summary and prefix it with a triangle (▶) to give visual indication
+            # of a collapsible/spoiler block in offline formats like EPUB/PDF.
+            if tag_name == "summary":
+                element.name = "strong"
+                element.insert(0, "▶ ")
 
             # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
             for attr in ("href", "src", "data", "poster"):
