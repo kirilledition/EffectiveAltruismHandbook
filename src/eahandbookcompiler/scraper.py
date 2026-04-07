@@ -34,7 +34,11 @@ _DECOMPOSE_TAGS = frozenset(["nav", "footer", "script", "style", "noscript"])
 _SANITIZE_TAGS = frozenset(
     ["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track", "abbr", "summary"],
 )
-_HTML_TAGS_TO_FILTER = list(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
+# ⚡ Bolt Optimization: Use a frozenset instead of a list for the global tag filter.
+# Module-level collections are not peephole-optimized by Python into constant sets.
+# Using a frozenset turns `tag_name in _HTML_TAGS_TO_FILTER` inside the html_to_markdown
+# loop from an O(N) list scan into an O(1) hash lookup, improving parsing speed.
+_HTML_TAGS_TO_FILTER = frozenset(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
 _DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
 
