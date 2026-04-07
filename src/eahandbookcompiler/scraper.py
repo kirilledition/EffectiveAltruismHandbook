@@ -32,7 +32,26 @@ REQUEST_DELAY = 1.0  # seconds between requests
 
 _DECOMPOSE_TAGS = frozenset(["nav", "footer", "script", "style", "noscript"])
 _SANITIZE_TAGS = frozenset(
-    ["a", "img", "source", "object", "iframe", "embed", "video", "audio", "track", "abbr", "summary"],
+    [
+        "a",
+        "img",
+        "source",
+        "object",
+        "iframe",
+        "embed",
+        "video",
+        "audio",
+        "track",
+        "abbr",
+        "summary",
+        "kbd",
+        "q",
+        "cite",
+        "del",
+        "s",
+        "sup",
+        "sub",
+    ],
 )
 # ⚡ Bolt Optimization: Use a frozenset instead of a list for the global tag filter.
 # Module-level collections are not peephole-optimized by Python into constant sets.
@@ -404,6 +423,31 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
             if tag_name == "summary":
                 element.name = "strong"
                 element.insert(0, "▶ ")
+
+            # UX Enhancement: Preserve semantic inline tags for offline formats.
+            # markdownify drops tags like <kbd>, <q>, <cite>, <del>, <s> or converts them
+            # into plain text/code blocks, losing semantic meaning in the generated EPUB/PDF.
+            # Explicitly wrap them in their original tags so the meaning survives conversion.
+            if tag_name in ("kbd", "q", "cite", "del", "s"):
+                element.insert(0, f"<{tag_name}>")
+                element.append(f"</{tag_name}>")
+                element.unwrap()
+                continue
+
+            # UX Enhancement: Support pandoc's superscript/subscript markdown syntax.
+            # markdownify drops <sup> and <sub> completely. By converting them into
+            # ^text^ and ~text~, pandoc properly styles them in offline EPUB/PDF formats.
+            if tag_name == "sup":
+                element.insert(0, "^")
+                element.append("^")
+                element.unwrap()
+                continue
+
+            if tag_name == "sub":
+                element.insert(0, "~")
+                element.append("~")
+                element.unwrap()
+                continue
 
             # Security Enhancement: Sanitize 'href', 'src', and 'data' to prevent XSS persistence in PDF/EPUB.
             for attr in ("href", "src", "data", "poster"):
