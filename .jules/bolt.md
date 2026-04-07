@@ -90,3 +90,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2026-03-30 - One-pass node filtering bypasses separate O(N) traversals in BeautifulSoup
 **Learning:** Chaining multiple `find_all` calls (e.g. `find_all(attrs={"aria-hidden": "true"})` followed by `find_all(tag_names)`) forces BeautifulSoup to repeatedly walk the DOM and eagerly allocate node lists. Fusing them into a single `find_all(True)` call and evaluating the attributes natively inside Python removes redundant list allocations and tree traversals. In dense structures like long documents, it offers roughly a 2.6x performance uplift.
 **Action:** Replace sequential searches across the entire DOM with a single `find_all(True)` loop that filters elements programmatically in Python, especially when the search space overlaps entirely.
+
+## 2025-04-14 - Fast O(1) hash lookups instead of O(N) list scans
+**Learning:** Module-level collections are not peephole-optimized by Python into constant sets. When iterating heavily over nodes and filtering by a list of strings, checking membership (`tag_name in list`) triggers an O(N) list scan for every node.
+**Action:** Always declare fixed collections meant for membership checking as a `frozenset` instead of a `list` to enable O(1) hash lookups.
