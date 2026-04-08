@@ -1298,6 +1298,31 @@ def test_html_to_markdown_adds_fallback_alt_text():
     assert md_alt == "![A nice image](https://example.com/image.jpg)"
 
 
+def test_html_to_markdown_preserves_semantic_inline_tags():
+    """Test that semantic inline tags like kbd, q, cite, del, s, mark, u, ins are preserved."""
+    from bs4 import BeautifulSoup
+
+    from eahandbookcompiler.scraper import html_to_markdown
+
+    html = (
+        "<div>Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy. <q>Quote</q> from <cite>Book</cite>. "
+        "<del>Deleted</del> and <s>Strikethrough</s>. <mark>Highlighted</mark>, <u>underlined</u>, "
+        "and <ins>inserted</ins>.</div>"
+    )
+    soup = BeautifulSoup(html, "lxml").find("div")
+    assert soup is not None
+    md = html_to_markdown(soup)
+    assert "<kbd>Ctrl</kbd>" in md
+    assert "<kbd>C</kbd>" in md
+    assert "<q>Quote</q>" in md
+    assert "<cite>Book</cite>" in md
+    assert "<del>Deleted</del>" in md
+    assert "<s>Strikethrough</s>" in md
+    assert "<mark>Highlighted</mark>" in md
+    assert "<u>underlined</u>" in md
+    assert "<ins>inserted</ins>" in md
+
+
 def test_html_to_markdown_xss_evasion():
     """Test that XSS evasion techniques on href/src attributes are stripped correctly."""
     html = """<div>
