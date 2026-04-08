@@ -1170,6 +1170,15 @@ class TestCacheOperations:
         result = _load_cached_post(cache_path, post)
         assert result is False
 
+    def test_load_cached_post_non_dict_json(self, tmp_path):
+        from eahandbookcompiler.scraper import _load_cached_post
+
+        cache_path = tmp_path / "bad.json"
+        cache_path.write_text("[]", encoding="utf-8")
+        post = Post(title="T", url="u")
+        result = _load_cached_post(cache_path, post)
+        assert result is False
+
     def test_save_post_to_cache(self, tmp_path):
         import json
 

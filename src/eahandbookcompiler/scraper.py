@@ -1002,7 +1002,7 @@ def _load_cached_post(cache_path: Path, post: Post) -> bool:
             post.markdown = data.get("markdown", "")
             post.author = data.get("author", "")
             post.posted_date = data.get("posted_date", "")
-    except (json.JSONDecodeError, OSError):  # fmt: skip
+    except (json.JSONDecodeError, OSError, AttributeError):  # fmt: skip
         return False
     else:
         return True
