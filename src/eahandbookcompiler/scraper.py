@@ -51,6 +51,9 @@ _SANITIZE_TAGS = frozenset(
         "s",
         "sup",
         "sub",
+        "mark",
+        "u",
+        "ins",
     ],
 )
 # ⚡ Bolt Optimization: Use a frozenset instead of a list for the global tag filter.
@@ -428,7 +431,7 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
             # markdownify drops tags like <kbd>, <q>, <cite>, <del>, <s> or converts them
             # into plain text/code blocks, losing semantic meaning in the generated EPUB/PDF.
             # Explicitly wrap them in their original tags so the meaning survives conversion.
-            if tag_name in ("kbd", "q", "cite", "del", "s"):
+            if tag_name in ("kbd", "q", "cite", "del", "s", "mark", "u", "ins"):
                 element.insert(0, f"<{tag_name}>")
                 element.append(f"</{tag_name}>")
                 element.unwrap()
