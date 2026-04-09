@@ -32,7 +32,7 @@ def _format_size(path: Path) -> str:
     return "unknown size"
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option()
 def cli() -> None:
     """Build the EA Handbook ebook from forum.effectivealtruism.org/handbook."""
