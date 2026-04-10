@@ -53,3 +53,7 @@
 ## 2024-05-24 - Preserve semantic text tags in Markdown extraction
 **Learning:** Tools like `markdownify` often aggressively strip inline semantic HTML tags (`<mark>`, `<u>`, `<ins>`) from scraped content because standard Markdown doesn't have native equivalents for them all. This causes visual cues like highlights, underlines, and insertions to be completely lost when readers view the content offline in an EPUB or PDF.
 **Action:** Always maintain a sanitize allowlist for meaningful inline tags and wrap them explicitly before passing to Markdown converters, ensuring they are passed through as raw HTML so downstream tools (like Pandoc) can process them properly and render them in the final accessible document.
+
+## 2025-04-06 - Enable `-h` alias for CLI help output
+**Learning:** By default, `click` only registers the `--help` flag. Users accustomed to typical command-line interfaces often instinctively type `-h` to view options. When the alias is missing, users receive an error (`Error: No such option: -h`), increasing friction and cognitive load.
+**Action:** Always explicitly enable the `-h` alias for help output in `click` applications by passing `context_settings={"help_option_names": ["-h", "--help"]}` to the `@click.group` or `@click.command` decorators.
