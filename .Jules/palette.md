@@ -57,3 +57,6 @@
 ## 2025-04-06 - Enable `-h` alias for CLI help output
 **Learning:** By default, `click` only registers the `--help` flag. Users accustomed to typical command-line interfaces often instinctively type `-h` to view options. When the alias is missing, users receive an error (`Error: No such option: -h`), increasing friction and cognitive load.
 **Action:** Always explicitly enable the `-h` alias for help output in `click` applications by passing `context_settings={"help_option_names": ["-h", "--help"]}` to the `@click.group` or `@click.command` decorators.
+## 2024-04-11 - Visually distinguish image captions in offline formats
+**Learning:** Tools like `markdownify` strip block-level semantic elements like `<figure>` and `<figcaption>`. This creates a UX regression in offline reading formats (EPUB/PDF) where image captions visually blend into body text, losing their semantic hierarchy and making the document harder to scan.
+**Action:** Always intercept structural semantic tags (like `figcaption`, `summary`, or `abbr`) before generic HTML-to-Markdown conversion. Map them to visually distinct standard Markdown syntax (like `<em>` for italics or bolding) to ensure the visual hierarchy is preserved for the offline reader.

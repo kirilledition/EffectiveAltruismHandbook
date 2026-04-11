@@ -54,6 +54,7 @@ _SANITIZE_TAGS = frozenset(
         "mark",
         "u",
         "ins",
+        "figcaption",
     ],
 )
 # ⚡ Bolt Optimization: Use a frozenset instead of a list for the global tag filter.
@@ -417,6 +418,13 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
                 title_attr = element.get("title")
                 if title_attr and isinstance(title_attr, str):
                     element.string = f"{element.get_text(strip=True)} ({title_attr.strip()})"
+
+            # UX Enhancement: Visually distinguish image captions in offline formats.
+            # markdownify strips <figure> and <figcaption>, making captions blend into
+            # regular body text. Converting <figcaption> to <em> ensures they are
+            # rendered as italics in generated EPUB/PDFs, preserving visual hierarchy.
+            if tag_name == "figcaption":
+                element.name = "em"
 
             # UX Enhancement: Preserve <summary> block structure for offline reading.
             # markdownify strips <details> and <summary> tags, making collapsible
