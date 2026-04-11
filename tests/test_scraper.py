@@ -1298,6 +1298,20 @@ def test_html_to_markdown_adds_fallback_alt_text():
     assert md_alt == "![A nice image](https://example.com/image.jpg)"
 
 
+def test_html_to_markdown_converts_figcaption_to_em():
+    """Test that figcaption tags are converted to em tags for visual hierarchy."""
+    from bs4 import BeautifulSoup
+
+    from eahandbookcompiler.scraper import html_to_markdown
+
+    html = '<figure><img src="test.jpg" alt="Test"/><figcaption>Caption text</figcaption></figure>'
+    soup = BeautifulSoup(html, "lxml").find("figure")
+    assert soup is not None
+
+    md = html_to_markdown(soup)
+    assert "*Caption text*" in md
+
+
 def test_html_to_markdown_preserves_semantic_inline_tags():
     """Test that semantic inline tags like kbd, q, cite, del, s, mark, u, ins are preserved."""
     from bs4 import BeautifulSoup
