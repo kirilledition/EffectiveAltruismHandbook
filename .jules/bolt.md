@@ -94,3 +94,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-04-14 - Fast O(1) hash lookups instead of O(N) list scans
 **Learning:** Module-level collections are not peephole-optimized by Python into constant sets. When iterating heavily over nodes and filtering by a list of strings, checking membership (`tag_name in list`) triggers an O(N) list scan for every node.
 **Action:** Always declare fixed collections meant for membership checking as a `frozenset` instead of a `list` to enable O(1) hash lookups.
+
+## 2025-05-18 - Fast-path checks bypass expensive standard library validation functions
+**Learning:** Calling `urllib.parse.unquote`, `html.unescape`, and `re.sub` unconditionally on thousands of HTML attributes to check for XSS vulnerabilities is unnecessary overhead when standard links contain no encoding or special characters. Guarding these functions with simple `if "%" in val or "&" in val` string checks allows the code to bypass the slow library calls and fall back to simple string operations for the vast majority of safe inputs.
+**Action:** When performing XSS validation or string sanitization in tight loops over lots of safe inputs, always check if the string actually contains trigger characters before invoking heavy standard library sanitization routines.

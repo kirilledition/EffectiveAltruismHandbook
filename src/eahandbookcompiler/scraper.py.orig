@@ -456,15 +456,7 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
             for attr in ("href", "src", "data", "poster"):
                 val = element.get(attr)
                 if val and isinstance(val, str):
-                    # ⚡ Bolt Optimization: Fast-path substring check bypasses expensive string sanitization.
-                    # Standard library functions like unquote, unescape, and re.sub are heavy when called
-                    # on every URL in the DOM. By checking for the presence of specific trigger characters
-                    # we can bypass the expensive sanitization calls for the majority of safe strings.
-                    if "%" in val or "&" in val or _WS_CTRL_RE.search(val):
-                        cleaned_val = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
-                    else:
-                        cleaned_val = val.lower()
-
+                    cleaned_val = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
                     if cleaned_val.startswith(_DANGEROUS_SCHEMES):
                         del element[attr]
                     else:
@@ -485,11 +477,7 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
                                     val = qs["url"][0]
 
                                 # Re-validate unwrapped URL to prevent XSS bypass
-                                if "%" in val or "&" in val or _WS_CTRL_RE.search(val):
-                                    unwrapped_cleaned = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
-                                else:
-                                    unwrapped_cleaned = val.lower()
-
+                                unwrapped_cleaned = _WS_CTRL_RE.sub("", unquote(html.unescape(val))).lower()
                                 if unwrapped_cleaned.startswith(_DANGEROUS_SCHEMES):
                                     del element[attr]
                                     continue
