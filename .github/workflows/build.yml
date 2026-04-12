@@ -162,7 +162,7 @@ jobs:
           mv dist/eahandbookcompiler.pdf "dist/EA Handbook — ${DATE}.pdf"
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.meta.outputs.date }}
           name: "EA Handbook - ${{ steps.meta.outputs.date }}"
