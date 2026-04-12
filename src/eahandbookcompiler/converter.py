@@ -276,14 +276,21 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
         subprocess.run(
             [
                 pandoc,
-                str(markdown_path.absolute()),
-                "--from=markdown",
-                "--to=epub3",
+                "--from",
+                "markdown",
+                "--to",
+                "epub3",
                 "--sandbox",
-                f"--output={output_path.absolute()}",
-                "--toc-depth=2",
-                "--split-level=2",
-                f"--css={dummy_css.absolute()}",
+                "--output",
+                str(output_path.absolute()),
+                "--toc-depth",
+                "2",
+                "--split-level",
+                "2",
+                "--css",
+                str(dummy_css.absolute()),
+                "--",
+                str(markdown_path.absolute()),
             ],
             check=True,
             capture_output=True,
@@ -320,19 +327,25 @@ def convert_to_pdf(markdown_path: Path, output_path: Path) -> Path:
 
     cmd = [
         pandoc,
-        str(markdown_path.absolute()),
-        "--from=markdown",
-        "--to=pdf",
+        "--from",
+        "markdown",
+        "--to",
+        "pdf",
         "--sandbox",
-        f"--pdf-engine={pdf_engine}",
-        f"--output={output_path.absolute()}",
-        "--toc-depth=2",
+        "--pdf-engine",
+        pdf_engine,
+        "--output",
+        str(output_path.absolute()),
+        "--toc-depth",
+        "2",
     ]
 
     if pdf_engine == "weasyprint":
         pdf_css = output_path.parent / "pdf.css"
         pdf_css.write_text(PDF_CSS, encoding="utf-8")
-        cmd.append(f"--css={pdf_css.absolute()}")
+        cmd.extend(["--css", str(pdf_css.absolute())])
+
+    cmd.extend(["--", str(markdown_path.absolute())])
 
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True)

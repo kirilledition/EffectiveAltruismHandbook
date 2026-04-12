@@ -634,14 +634,21 @@ class TestConvertToEpub:
         mock_subprocess_run.assert_called_once_with(
             [
                 "/usr/bin/pandoc",
-                str(markdown_path),
-                "--from=markdown",
-                "--to=epub3",
+                "--from",
+                "markdown",
+                "--to",
+                "epub3",
                 "--sandbox",
-                f"--output={test_output_path}",
-                "--toc-depth=2",
-                "--split-level=2",
-                f"--css={test_output_path.parent / 'epub.css'}",
+                "--output",
+                str(test_output_path),
+                "--toc-depth",
+                "2",
+                "--split-level",
+                "2",
+                "--css",
+                str(test_output_path.parent / "epub.css"),
+                "--",
+                str(markdown_path),
             ],
             check=True,
             capture_output=True,
@@ -664,7 +671,10 @@ class TestConvertToPdf:
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         assert "--sandbox" in args
-        assert f"--css={test_output_path.parent / 'pdf.css'}" in args
+        assert "--css" in args
+        assert str(test_output_path.parent / "pdf.css") in args
+        assert "--pdf-engine" in args
+        assert args[args.index("--pdf-engine") + 1] == "weasyprint"
 
 
 class TestFetchRedirects:

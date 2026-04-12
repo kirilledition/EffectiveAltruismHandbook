@@ -121,6 +121,58 @@ class TestDemoteHeadingsCap:
         assert result == "###### Heading"
 
 
+class TestSubprocessCommandInjectionPrevention:
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    @patch("eahandbookcompiler.converter.require_pandoc")
+    def test_convert_to_epub_command_injection_prevention(self, mock_require_pandoc, mock_subprocess_run, tmp_path):
+        from eahandbookcompiler.converter import convert_to_epub
+
+        mock_require_pandoc.return_value = "/usr/bin/pandoc"
+        markdown_path = tmp_path / "-evil-flag.md"
+        output_path = tmp_path / "out.epub"
+
+        convert_to_epub(markdown_path, output_path)
+
+        cmd = mock_subprocess_run.call_args[0][0]
+
+        # Verify -- is right before the input path
+        assert cmd[-2] == "--"
+        assert cmd[-1] == str(markdown_path.absolute())
+
+        # Verify flags and values are separated, not using '='
+        assert "--output" in cmd
+        assert cmd[cmd.index("--output") + 1] == str(output_path.absolute())
+
+        # Verify there are no '=' in arguments except possibly in the path itself (which we control here and has none)
+        for arg in cmd[:-1]:  # exclude the path at the end
+            assert "=" not in arg
+
+    @patch("eahandbookcompiler.converter.subprocess.run")
+    @patch("eahandbookcompiler.converter.require_pandoc")
+    def test_convert_to_pdf_command_injection_prevention(self, mock_require_pandoc, mock_subprocess_run, tmp_path):
+        from eahandbookcompiler.converter import convert_to_pdf
+
+        mock_require_pandoc.return_value = "/usr/bin/pandoc"
+        markdown_path = tmp_path / "-evil-flag.md"
+        output_path = tmp_path / "out.pdf"
+
+        convert_to_pdf(markdown_path, output_path)
+
+        cmd = mock_subprocess_run.call_args[0][0]
+
+        # Verify -- is right before the input path
+        assert cmd[-2] == "--"
+        assert cmd[-1] == str(markdown_path.absolute())
+
+        # Verify flags and values are separated, not using '='
+        assert "--output" in cmd
+        assert cmd[cmd.index("--output") + 1] == str(output_path.absolute())
+
+        # Verify there are no '=' in arguments except possibly in the path itself
+        for arg in cmd[:-1]:
+            assert "=" not in arg
+
+
 class TestBylineVariants:
     def test_author_only_byline(self, tmp_path):
         from eahandbookcompiler.converter import handbook_to_markdown
