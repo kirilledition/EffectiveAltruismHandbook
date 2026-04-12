@@ -387,8 +387,13 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
             # If missing, assign a fallback to prevent screen readers from reading
             # out raw image URLs. However, intentionally empty alt texts (alt="")
             # must be preserved so screen readers skip decorative images.
-            if tag_name == "img" and element.get("alt") is None:
-                element["alt"] = "Image"
+            # Furthermore, if an image is explicitly marked as decorative via
+            # role="presentation" or role="none", force an empty alt attribute.
+            if tag_name == "img":
+                if element.get("role") in ("presentation", "none"):
+                    element["alt"] = ""
+                elif element.get("alt") is None:
+                    element["alt"] = "Image"
 
             # UX Enhancement: Ensure embedded frames have a title for accessibility.
             # If missing, screen readers in offline formats (EPUB/PDF) will read the raw URL.

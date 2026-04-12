@@ -1307,6 +1307,16 @@ def test_html_to_markdown_adds_fallback_alt_text():
     md_alt = html_to_markdown(soup_alt)
     assert md_alt == "![A nice image](https://example.com/image.jpg)"
 
+    html_role_presentation = '<img src="https://example.com/image.jpg" role="presentation" alt="Ignore this" />'
+    soup_role_presentation = BeautifulSoup(html_role_presentation, "lxml")
+    md_role_presentation = html_to_markdown(soup_role_presentation)
+    assert md_role_presentation == "![](https://example.com/image.jpg)"
+
+    html_role_none_no_alt = '<img src="https://example.com/image.jpg" role="none" />'
+    soup_role_none_no_alt = BeautifulSoup(html_role_none_no_alt, "lxml")
+    md_role_none_no_alt = html_to_markdown(soup_role_none_no_alt)
+    assert md_role_none_no_alt == "![](https://example.com/image.jpg)"
+
 
 def test_html_to_markdown_converts_figcaption_to_em():
     """Test that figcaption tags are converted to em tags for visual hierarchy."""
