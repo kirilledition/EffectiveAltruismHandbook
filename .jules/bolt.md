@@ -98,3 +98,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-05-18 - Fast-path checks bypass expensive standard library validation functions
 **Learning:** Calling `urllib.parse.unquote`, `html.unescape`, and `re.sub` unconditionally on thousands of HTML attributes to check for XSS vulnerabilities is unnecessary overhead when standard links contain no encoding or special characters. Guarding these functions with simple `if "%" in val or "&" in val` string checks allows the code to bypass the slow library calls and fall back to simple string operations for the vast majority of safe inputs.
 **Action:** When performing XSS validation or string sanitization in tight loops over lots of safe inputs, always check if the string actually contains trigger characters before invoking heavy standard library sanitization routines.
+
+## 2025-05-18 - BeautifulSoup DOM Search Scope Constraining
+**Learning:** Searching the entire parsed DOM (`soup.find` or `soup.find_all`) for tags strictly expected in the `<head>` (like `<meta>`) scales horribly as the document body grows (`O(N)` nodes). By explicitly checking `soup.head.find_all` first, we bypass traversing thousands of irrelevant nodes in the `<body>`, dropping extraction time for head-based properties by an order of magnitude.
+**Action:** When searching for document-level properties like `<meta>` or `<title>`, always constrain the search scope to `soup.head` first, falling back to a full DOM search only if missing.
