@@ -554,7 +554,50 @@ def _strip_cc_license_footers(element: Tag) -> None:
             child.decompose()
 
 
-def extract_metadata_json_ld(soup: BeautifulSoup) -> tuple[str, str]:  # noqa: C901, PLR0912
+def _parse_json_ld_script(s: str, current_author: str, current_date: str) -> tuple[str, str]:  # noqa: C901
+    """Parse a single JSON-LD script content and extract author and date.
+
+    Args:
+        s: Raw JSON string from the script tag.
+        current_author: Previously found author (if any).
+        current_date: Previously found date (if any).
+
+    Returns:
+        Updated tuple of (author, date).
+    """
+    has_author = '"author"' in s
+    has_date = '"datePublished"' in s or '"dateCreated"' in s
+
+    if not has_author and not has_date:
+        return current_author, current_date
+
+    try:
+        data = json.loads(s)
+        if not isinstance(data, dict):
+            return current_author, current_date
+    except (json.JSONDecodeError, TypeError):  # fmt: skip
+        return current_author, current_date
+
+    if not current_author and has_author:
+        a = data.get("author")
+        if isinstance(a, dict):
+            name = a.get("name", "")
+            if name:
+                current_author = name
+        elif isinstance(a, str) and a:
+            current_author = a
+
+    if not current_date and has_date:
+        for key in ("datePublished", "dateCreated"):
+            ds = data.get(key, "")
+            if ds:
+                current_date = str(ds)[:10]  # YYYY-MM-DD
+                break
+
+    return current_author, current_date
+
+
+def extract_metadata_json_ld(soup: BeautifulSoup) -> tuple[str, str]:
     """Try to extract author and date from JSON-LD structured data in a single pass.
 
     Args:
@@ -569,42 +612,25 @@ def extract_metadata_json_ld(soup: BeautifulSoup) -> tuple[str, str]:  # noqa: C
     # ⚡ Bolt Optimization: Evaluate JSON-LD scripts exactly once to find both
     # author and date. This avoids two separate `find_all` calls and duplicate JSON
     # decoding for elements containing both properties.
-    for script in soup.find_all("script", type="application/ld+json"):
-        s = script.string or ""
-        if not s:
+    # ⚡ Bolt Optimization (Follow-up): Constrain DOM traversal to the <head> element.
+    # JSON-LD <script> tags practically always reside in the document head. Searching
+    # the entire DOM forces BeautifulSoup to walk thousands of <body> nodes needlessly.
+    # Limiting the search space to soup.head drops extraction time significantly.
+    scopes = (soup.head, soup.body) if soup.head else (soup,)
+
+    for scope in scopes:
+        if scope is None:
             continue
 
-        has_author = '"author"' in s
-        has_date = '"datePublished"' in s or '"dateCreated"' in s
-
-        if not has_author and not has_date:
-            continue
-
-        try:
-            data = json.loads(s)
-            if not isinstance(data, dict):
+        for script in scope.find_all("script", type="application/ld+json"):
+            s = script.string or ""
+            if not s:
                 continue
-        except (json.JSONDecodeError, TypeError):  # fmt: skip
-            continue
 
-        if not author and has_author:
-            a = data.get("author")
-            if isinstance(a, dict):
-                name = a.get("name", "")
-                if name:
-                    author = name
-            elif isinstance(a, str) and a:
-                author = a
+            author, date_str = _parse_json_ld_script(s, author, date_str)
 
-        if not date_str and has_date:
-            for key in ("datePublished", "dateCreated"):
-                ds = data.get(key, "")
-                if ds:
-                    date_str = str(ds)[:10]  # YYYY-MM-DD
-                    break
-
-        if author and date_str:
-            break
+            if author and date_str:
+                return author, date_str
 
     return author, date_str
 
