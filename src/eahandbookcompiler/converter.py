@@ -10,6 +10,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from eahandbookcompiler.scraper import Handbook
 
+EPUB_CSS = """\
+body {
+    line-height: 1.5;
+    color: #1a1a1a;
+}
+a {
+    color: #0056b3;
+    text-decoration: underline;
+}
+"""
+
 PDF_CSS = """\
 @page {
     margin: 1.0cm;
@@ -17,6 +28,12 @@ PDF_CSS = """\
 body {
     font-family: "Liberation Sans", sans-serif;
     font-size: 10pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+}
+a {
+    color: #0056b3;
+    text-decoration: underline;
 }
 img {
     max-width: 100%;
@@ -268,9 +285,10 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Workaround for nixpkgs pandoc missing epub.css
-    dummy_css = output_path.parent / "epub.css"
-    if not dummy_css.exists():
-        dummy_css.write_text("/* Custom EPUB CSS */\n", encoding="utf-8")
+    # UX Enhancement: Provide base typography and link accessibility CSS
+    # to improve readability and contrast on devices that don't override it.
+    epub_css_file = output_path.parent / "epub.css"
+    epub_css_file.write_text(EPUB_CSS, encoding="utf-8")
 
     try:
         subprocess.run(
@@ -288,7 +306,7 @@ def convert_to_epub(markdown_path: Path, output_path: Path) -> Path:
                 "--split-level",
                 "2",
                 "--css",
-                str(dummy_css.absolute()),
+                str(epub_css_file.absolute()),
                 "--",
                 str(markdown_path.absolute()),
             ],
