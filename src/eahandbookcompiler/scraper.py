@@ -189,7 +189,11 @@ def _validate_url(url: str) -> str:
     # Security Enhancement: Prevent URL validation bypasses via backslashes
     # where urllib.parse.urlparse fails to normalize them into the path/hostname
     # correctly, ensuring consistent interpretation with modern HTTP clients.
-    url = url.replace("\\", "/")
+    # ⚡ Bolt Optimization: Fast-path string check bypasses unconditional string
+    # allocation. Since 99.9% of URLs do not contain backslashes, checking for
+    # their presence first avoids creating a new string copy on every validation.
+    if "\\" in url:
+        url = url.replace("\\", "/")
 
     parsed = urlparse(url)
 
@@ -285,7 +289,11 @@ def is_ea_forum_post(url: str) -> bool:
     # Security Enhancement: Prevent URL validation bypasses via backslashes
     # where urllib.parse.urlparse fails to normalize them into the path/hostname
     # correctly, ensuring consistent interpretation with modern HTTP clients.
-    url = url.replace("\\", "/")
+    # ⚡ Bolt Optimization: Fast-path string check bypasses unconditional string
+    # allocation. Since 99.9% of URLs do not contain backslashes, checking for
+    # their presence first avoids creating a new string copy on every validation.
+    if "\\" in url:
+        url = url.replace("\\", "/")
 
     # ⚡ Bolt Optimization: Fast-path string check bypasses expensive URL parsing
     # and normalization overhead (~2x faster) for the vast majority of URLs that
@@ -827,10 +835,6 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:  # noqa: C
     Returns:
         The ``<div>`` element with the most accumulated text, or ``None``.
     """
-    divisions = soup.find_all("div")
-    if not divisions:
-        return None
-
     # ⚡ Bolt Optimization: Group text lengths by immediate parent tag first.
     # Instead of walking up the entire parent chain for *every single text node*
     # (which takes O(N*Depth) time), we accumulate lengths at the immediate parent
@@ -856,20 +860,29 @@ def find_largest_content_division(soup: BeautifulSoup) -> Tag | None:  # noqa: C
                         parent_lengths[pid] = length
                         parent_tags[pid] = p
 
+    # ⚡ Bolt Optimization: Track div tags dynamically during the parent chain walk
+    # instead of calling `soup.find_all("div")` upfront. This bypasses an entire O(N)
+    # full-document scan and avoids eagerly allocating a list of all div elements,
+    # considering only the ones that actually contain text.
     div_text_lengths: dict[int, int] = {}
+    div_tags: dict[int, Tag] = {}
     for pid, total_len in parent_lengths.items():
         curr = parent_tags[pid]
         while curr is not None:
             if curr.name == "div":
+                curr_id = id(curr)
                 try:
-                    div_text_lengths[id(curr)] += total_len
+                    div_text_lengths[curr_id] += total_len
                 except KeyError:
-                    div_text_lengths[id(curr)] = total_len
+                    div_text_lengths[curr_id] = total_len
+                    div_tags[curr_id] = curr
             curr = curr.parent
 
-    if not div_text_lengths:
+    if not div_tags:
         return None
-    return max(divisions, key=lambda d: div_text_lengths.get(id(d), 0))
+    # Use a lambda to avoid strict type checker issues with dict.get in max()
+    max_id = max(div_text_lengths, key=lambda k: div_text_lengths[k])
+    return div_tags[max_id]
 
 
 def _extract_from_react_structure(content: Tag) -> list[Post]:

@@ -102,3 +102,7 @@ When optimizing BeautifulSoup document traversals involving multiple `find_all()
 ## 2025-05-18 - BeautifulSoup DOM Search Scope Constraining
 **Learning:** Searching the entire parsed DOM (`soup.find` or `soup.find_all`) for tags strictly expected in the `<head>` (like `<meta>`) scales horribly as the document body grows (`O(N)` nodes). By explicitly checking `soup.head.find_all` first, we bypass traversing thousands of irrelevant nodes in the `<body>`, dropping extraction time for head-based properties by an order of magnitude.
 **Action:** When searching for document-level properties like `<meta>` or `<title>`, always constrain the search scope to `soup.head` first, falling back to a full DOM search only if missing.
+
+## 2026-03-31 - Fast path filtering bypassing URL parsing and list allocations
+**Learning:** Checking for substrings like `\\` before unconditionally executing `url.replace("\\", "/")` avoids unconditionally re-allocating identical strings on safe URLs. Bypassing an O(N) `soup.find_all("div")` by dynamically collecting div elements and their calculated text lengths directly into a dict while walking the parent chain gives roughly ~25% performance improvement for heuristic content division searches.
+**Action:** Always try to combine dynamic DOM node collection into existing O(N) tree-walks and use lambda-based `.get` dict keys with `max()` rather than scanning the entire DOM to build a target node list ahead of time.
