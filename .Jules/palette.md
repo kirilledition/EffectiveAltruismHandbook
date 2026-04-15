@@ -63,3 +63,7 @@
 ## 2024-04-12 - Ensure decorative images are skipped by screen readers
 **Learning:** While adding fallback `alt="Image"` attributes to `<img>` tags improves accessibility by preventing screen readers from reading out raw URLs, it can inadvertently negatively impact the experience if the image was explicitly meant to be decorative and was marked as such using `role="presentation"` or `role="none"`. The `markdownify` conversion handles empty alt attributes (`alt=""`) cleanly as decorative markdown images (`![]()`), which Pandoc then respects when generating EPUB/PDF.
 **Action:** When applying fallback alt attributes, always check for explicit decorative roles (`role="presentation"` or `role="none"`) and force an empty alt attribute to respect the author's accessibility intent.
+
+## 2024-05-15 - Improve offline typography and contrast
+**Learning:** Default rendering engines for generated EPUB and PDF files often output raw, unstyled HTML with pure black text, dense line spacing, and links without sufficient visual distinction or contrast. Offline generated formats need explicit base typography (like `line-height: 1.5`, soft-black text) and link accessibility styles injected during conversion.
+**Action:** When converting HTML to markdown/EPUB/PDF using Pandoc or similar tools, always define and inject a minimal baseline CSS stylesheet ensuring adequate line height, contrast-safe font colors, and clearly identifiable link styling.
