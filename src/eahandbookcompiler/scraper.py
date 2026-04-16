@@ -1251,6 +1251,7 @@ def _scrape_posts_sequential(
             fill_char=click.style("█", fg="cyan"),
             empty_char=click.style("░", dim=True),
             color=True,
+            show_pos=True,
         ) as bar:
             for i, item in enumerate(bar, 1):
                 post = _get_item_from_bar(item)
@@ -1302,6 +1303,7 @@ def _scrape_posts_concurrent(
                 fill_char=click.style("█", fg="cyan"),
                 empty_char=click.style("░", dim=True),
                 color=True,
+                show_pos=True,
             ) as bar:
                 for future in as_completed(future_to_index):
                     idx = future_to_index[future]

@@ -67,3 +67,7 @@
 ## 2024-05-15 - Improve offline typography and contrast
 **Learning:** Default rendering engines for generated EPUB and PDF files often output raw, unstyled HTML with pure black text, dense line spacing, and links without sufficient visual distinction or contrast. Offline generated formats need explicit base typography (like `line-height: 1.5`, soft-black text) and link accessibility styles injected during conversion.
 **Action:** When converting HTML to markdown/EPUB/PDF using Pandoc or similar tools, always define and inject a minimal baseline CSS stylesheet ensuring adequate line height, contrast-safe font colors, and clearly identifiable link styling.
+
+## 2025-04-07 - Show explicit item counts in CLI progress bars
+**Learning:** By default, `click.progressbar` visually shows progress but does not explicitly print the current item count vs the total (e.g., `[12/50]`) unless instructed. For long-running batch processes like downloading files or compiling chapters, users often feel anxious if they don't know exactly how many items remain, reducing the perceived responsiveness of the CLI.
+**Action:** When using `click.progressbar` for discrete, countable tasks (like downloading a list of items), always add `show_pos=True`. This explicitly appends the current position and total length to the bar output, giving the user concrete feedback on the task's progress.
