@@ -1368,6 +1368,9 @@ def test_html_to_markdown_xss_evasion():
     <a href="%6Aavascrip%74:%61lert(1)">Click me6</a>
     <a href="&#x6A;avascrip&#x74;&#x3A;alert(1)">Click me7</a>
     <a href="vbscript:msgbox(1)">Click me8</a>
+    <a href="vbs:msgbox(1)">Click me9</a>
+    <a href="jscript:alert(1)">Click me10</a>
+    <a href="livescript:alert(1)">Click me11</a>
     <a href="file:///etc/passwd">LFI attempt</a>
     <a href="https://example.com">safe</a>
     <a href="mailto:test@example.com">safe mailto</a>
