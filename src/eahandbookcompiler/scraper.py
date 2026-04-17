@@ -63,7 +63,7 @@ _SANITIZE_TAGS = frozenset(
 # loop from an O(N) list scan into an O(1) hash lookup, improving parsing speed.
 _HTML_TAGS_TO_FILTER = frozenset(_DECOMPOSE_TAGS | _SANITIZE_TAGS | {"div"})
 _WS_CTRL_RE = re.compile(r"[\s\x00-\x1f\x7f-\x9f]")
-_DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
+_DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:", "jscript:", "vbs:", "livescript:")
 
 
 # ⚡ Bolt Optimization: To optimize URL processing for repetitive links (common in documents like the EA Handbook),
