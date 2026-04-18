@@ -71,3 +71,7 @@
 ## 2025-04-07 - Show explicit item counts in CLI progress bars
 **Learning:** By default, `click.progressbar` visually shows progress but does not explicitly print the current item count vs the total (e.g., `[12/50]`) unless instructed. For long-running batch processes like downloading files or compiling chapters, users often feel anxious if they don't know exactly how many items remain, reducing the perceived responsiveness of the CLI.
 **Action:** When using `click.progressbar` for discrete, countable tasks (like downloading a list of items), always add `show_pos=True`. This explicitly appends the current position and total length to the bar output, giving the user concrete feedback on the task's progress.
+
+## 2025-04-08 - Style semantic HTML tags for offline reading
+**Learning:** While preserving semantic HTML tags like `<kbd>`, `<mark>`, and `<blockquote>` during the conversion process is necessary for accessibility, it is not sufficient. Default renderers for generated offline formats (EPUB/PDF) often lack base styles for these elements. This results in the tags blending visually with surrounding text, destroying the visual hierarchy they are meant to establish.
+**Action:** Always inject CSS that explicitly styles preserved semantic tags (e.g. adding a border and background to `<kbd>`, a yellow background to `<mark>`, or an indented border to `<blockquote>`) during the conversion to EPUB and PDF, ensuring the visual context is communicated effectively.

@@ -19,6 +19,30 @@ a {
     color: #0056b3;
     text-decoration: underline;
 }
+blockquote {
+    border-left: 4px solid #ddd;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
+    color: #555;
+    font-style: italic;
+}
+kbd {
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+mark {
+    background-color: #ffeb3b;
+    color: #000;
+}
 """
 
 PDF_CSS = """\
@@ -41,6 +65,30 @@ img {
 }
 h1 {
     page-break-before: always;
+}
+blockquote {
+    border-left: 4px solid #ddd;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
+    color: #555;
+    font-style: italic;
+}
+kbd {
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+mark {
+    background-color: #ffeb3b;
+    color: #000;
 }
 """
 
