@@ -75,3 +75,7 @@
 ## 2025-04-08 - Style semantic HTML tags for offline reading
 **Learning:** While preserving semantic HTML tags like `<kbd>`, `<mark>`, and `<blockquote>` during the conversion process is necessary for accessibility, it is not sufficient. Default renderers for generated offline formats (EPUB/PDF) often lack base styles for these elements. This results in the tags blending visually with surrounding text, destroying the visual hierarchy they are meant to establish.
 **Action:** Always inject CSS that explicitly styles preserved semantic tags (e.g. adding a border and background to `<kbd>`, a yellow background to `<mark>`, or an indented border to `<blockquote>`) during the conversion to EPUB and PDF, ensuring the visual context is communicated effectively.
+
+## 2025-04-09 - Make EPUB images responsive
+**Learning:** Large images in EPUBs often overflow the screen horizontally or get clipped because EPUB readers do not inherently constrain image widths. This causes a poor reading experience for visual content.
+**Action:** Always include responsive image CSS (`img { max-width: 100%; height: auto; }`) when generating EPUB stylesheets to ensure images fit the viewport and don't break the layout.

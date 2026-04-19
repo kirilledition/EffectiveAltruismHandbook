@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from eahandbookcompiler.converter import PDF_CSS, demote_headings, require_pandoc
+from eahandbookcompiler.converter import EPUB_CSS, PDF_CSS, demote_headings, require_pandoc
 from eahandbookcompiler.scraper import Handbook, Post
 
 
@@ -89,6 +89,14 @@ class TestRequirePandocErrorPath:
         with pytest.raises(RuntimeError, match="pandoc is not installed"):
             require_pandoc()
         mock_which.assert_called_once_with("pandoc")
+
+
+class TestEpubCss:
+    def test_contains_img_max_width(self):
+        assert "max-width: 100%" in EPUB_CSS
+
+    def test_contains_img_height_auto(self):
+        assert "height: auto" in EPUB_CSS
 
 
 class TestPdfCss:
