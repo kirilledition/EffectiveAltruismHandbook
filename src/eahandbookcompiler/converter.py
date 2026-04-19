@@ -19,6 +19,10 @@ a {
     color: #0056b3;
     text-decoration: underline;
 }
+img {
+    max-width: 100%;
+    height: auto;
+}
 blockquote {
     border-left: 4px solid #ddd;
     margin: 1.5em 10px;
