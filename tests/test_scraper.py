@@ -1332,6 +1332,28 @@ def test_html_to_markdown_converts_figcaption_to_em():
     assert "*Caption text*" in md
 
 
+def test_html_to_markdown_converts_embedded_frames_to_links():
+    """Test that iframe, object, and embed tags are converted to fallback links."""
+    from bs4 import BeautifulSoup
+
+    from eahandbookcompiler.scraper import html_to_markdown
+
+    html = """
+    <div>
+        <iframe src="https://youtube.com/embed/123" title="My Video"></iframe>
+        <object data="file.pdf" aria-label="A PDF document"></object>
+        <embed src="file.swf"></embed>
+    </div>
+    """
+    soup = BeautifulSoup(html, "lxml").find("div")
+    assert soup is not None
+
+    md = html_to_markdown(soup)
+    assert "[My Video](https://youtube.com/embed/123" in md
+    assert "[A PDF document](https://forum.effectivealtruism.org/file.pdf" in md
+    assert "[Embedded content](https://forum.effectivealtruism.org/file.swf" in md
+
+
 def test_html_to_markdown_preserves_semantic_inline_tags():
     """Test that semantic inline tags like kbd, q, cite, del, s, mark, u, ins are preserved."""
     from bs4 import BeautifulSoup

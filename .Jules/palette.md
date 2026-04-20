@@ -79,3 +79,7 @@
 ## 2025-04-09 - Make EPUB images responsive
 **Learning:** Large images in EPUBs often overflow the screen horizontally or get clipped because EPUB readers do not inherently constrain image widths. This causes a poor reading experience for visual content.
 **Action:** Always include responsive image CSS (`img { max-width: 100%; height: auto; }`) when generating EPUB stylesheets to ensure images fit the viewport and don't break the layout.
+
+## 2025-04-20 - Preserve embedded frames as links in offline formats
+**Learning:** Tools like `markdownify` strip out `<iframe`, `<object>`, and `<embed>` tags entirely during HTML-to-Markdown conversion. This results in embedded content (like videos or external documents) silently disappearing from generated offline formats (EPUB/PDF), removing context and degrading the reading experience.
+**Action:** Before converting HTML to Markdown, convert embedded frames into standard `<a>` tags pointing to the embedded resource (`src` or `data` attribute). Assign a fallback text description (using `title`, `aria-label`, or the tag name) so users reading offline can click the link to open the embedded content in an external browser.

@@ -408,12 +408,14 @@ def html_to_markdown(html_element: Tag) -> str:  # noqa: C901, PLR0912, PLR0915
             if tag_name in ("iframe", "object", "embed") and not element.get("title"):
                 element["title"] = "Embedded content"
 
-            # UX Enhancement: Convert video and audio tags to standard links so they aren't lost
-            # or rendered unhelpfully by markdownify in offline formats.
-            if tag_name in ("video", "audio"):
+            # UX Enhancement: Convert embedded frames, video, and audio tags to standard links.
+            # markdownify strips iframe, object, embed, video, and audio tags, making them
+            # disappear completely in offline formats. Converting them to <a> tags preserves
+            # access to the embedded content via an external browser.
+            if tag_name in ("iframe", "object", "embed", "video", "audio"):
                 fallback = element.get("aria-label") or element.get("title") or tag_name.capitalize()
-                src = element.get("src")
-                if not src:
+                src = element.get("src") or element.get("data")
+                if not src and tag_name in ("video", "audio"):
                     source_tag = element.find("source")
                     if source_tag and isinstance(source_tag, Tag):
                         src = source_tag.get("src")
