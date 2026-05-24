@@ -9,7 +9,7 @@ authors = [{ name = "kirill denisov", email = "kirill.denisov700@gmail.com" }]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "click>=8.4.1",
-    "lxml>=6.1.0",
+    "lxml>=6.1.1",
     "markdownify>=1.2.2",
     "requests>=2.34.2",
 ]
