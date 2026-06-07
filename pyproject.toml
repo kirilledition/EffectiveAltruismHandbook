@@ -7,7 +7,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.14"
 authors = [{ name = "kirill denisov", email = "kirill.denisov700@gmail.com" }]
 dependencies = [
-    "beautifulsoup4>=4.14.3",
+    "beautifulsoup4>=4.15.0",
     "click>=8.4.1",
     "lxml>=6.1.1",
     "markdownify>=1.2.2",
