@@ -14,7 +14,7 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -35,7 +35,7 @@ jobs:
     outputs:
       content_changed: ${{ steps.diff.outputs.changed }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -96,7 +96,7 @@ jobs:
     needs: scrape
     if: needs.scrape.outputs.content_changed == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -134,7 +134,7 @@ jobs:
     # Only create a release on the default branch (not for PRs or forks)
     if: github.ref == 'refs/heads/main' && github.repository == 'kirilledition/EffectiveAltruismHandbook'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
